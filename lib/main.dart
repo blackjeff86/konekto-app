@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle; // Importe para carregar assets
-import 'dart:convert'; // Importe para decodificar JSON
+import 'package:flutter/services.dart' show rootBundle;
+import 'dart:convert';
+import 'package:intl/date_symbol_data_local.dart'; // A linha que havia sumido
 
-// Importe sua HomeScreen
+// Importe suas telas
 import 'package:konekto_app/screens/home_screen.dart';
 
-void main() {
+void main() async { // A função main precisa ser assíncrona
+  WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('pt_BR', null); // Inicializa os dados de localização
+  
   runApp(const MyApp());
 }
 
@@ -17,36 +21,30 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  Map<String, dynamic> _tenantConfig = {}; // Estado para armazenar a configuração do tenant
-  bool _isLoading = true; // Estado para controlar o carregamento
+  Map<String, dynamic> _tenantConfig = {};
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadTenantConfig(); // Carrega a configuração quando o app inicia
+    _loadTenantConfig();
   }
 
- Future<void> _loadTenantConfig() async {
+  Future<void> _loadTenantConfig() async {
     try {
-      // Carrega o arquivo JSON do tenant dos assets
-      final String response = await rootBundle.loadString('lib/tenants/hotel_default.json');
-      // --- Adicione esta linha para ver o conteúdo do JSON que está sendo lido ---
+      final String response = await rootBundle.loadString('assets/tenants/hotel_default.json');
       print('Conteúdo JSON lido: $response');
-      // --------------------------------------------------------------------------
       final Map<String, dynamic> data = json.decode(response);
       setState(() {
         _tenantConfig = data;
         _isLoading = false;
       });
     } catch (e) {
-      // --- Mude esta linha para imprimir o erro exato ---
       print('ERRO ao carregar ou decodificar a configuração do tenant: $e');
-      // --------------------------------------------------
       setState(() {
         _isLoading = false;
-        // Opcional: Definir uma configuração padrão de fallback em caso de erro
         _tenantConfig = {
-          'name': 'Konekto App - Erro', // Mantemos isso para saber que é o fallback
+          'name': 'Konekto App - Erro',
           'primaryColor': '#CCCCCC',
           'logo': 'assets/logos/default_logo.png',
         };
@@ -56,7 +54,6 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    // Enquanto estiver carregando, mostra um indicador
     if (_isLoading) {
       return const MaterialApp(
         home: Scaffold(
@@ -67,13 +64,12 @@ class _MyAppState extends State<MyApp> {
       );
     }
 
-    // Quando a configuração estiver carregada, constrói o aplicativo
     return MaterialApp(
       title: 'Konekto App',
       theme: ThemeData(
-        primarySwatch: Colors.blue, // Você pode ajustar isso com base na primaryColor do tenant se quiser
+        primarySwatch: Colors.blue,
       ),
-      home: HomeScreen(tenantConfig: _tenantConfig), // Renderiza a HomeScreen passando a configuração
+      home: HomeScreen(tenantConfig: _tenantConfig),
     );
   }
 }
