@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
-import '../utils/app_theme_data.dart'; // ALTERADO: Usa a nova classe de cores
+import '../utils/app_theme_data.dart';
 import '../widgets/custom_header.dart';
 import '../widgets/image_banner.dart';
 import '../widgets/bottom_buttons.dart';
 import 'schedule_screen.dart';
+import 'product_detail_screen.dart'; // Importa a tela de detalhes do produto
 
 class MenuScreen extends StatelessWidget {
   final String restaurantTitle;
   final String restaurantDescription;
   final String restaurantImagePath;
   final List<Map<String, dynamic>> menu;
-  final AppThemeData appColors; // ADICIONADO: Parâmetro para as cores dinâmicas
+  final AppThemeData appColors;
 
   const MenuScreen({
     super.key,
@@ -18,19 +19,19 @@ class MenuScreen extends StatelessWidget {
     required this.restaurantDescription,
     required this.restaurantImagePath,
     required this.menu,
-    required this.appColors, // ADICIONADO: ao construtor
+    required this.appColors,
   });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: appColors.background, // ALTERADO: Usa cor dinâmica
+      backgroundColor: appColors.background,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(kToolbarHeight),
         child: CustomHeader(
           title: 'Cardápio',
           leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: appColors.primaryText), // ALTERADO: Usa cor dinâmica
+            icon: Icon(Icons.arrow_back, color: appColors.primaryText),
             onPressed: () {
               Navigator.pop(context);
             },
@@ -47,7 +48,7 @@ class MenuScreen extends StatelessWidget {
               imagePath: restaurantImagePath,
               height: 250,
               gradientText: restaurantTitle,
-              appColors: appColors, // CORRIGIDO: O argumento 'appColors' agora está sendo passado.
+              appColors: appColors,
             ),
             Padding(
               padding: const EdgeInsets.all(16.0),
@@ -57,11 +58,13 @@ class MenuScreen extends StatelessWidget {
                   Text(
                     restaurantDescription,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: appColors.secondaryText, // ALTERADO: Usa cor dinâmica
+                          color: appColors.secondaryText,
                         ),
                   ),
                   const SizedBox(height: 24),
-                  ...menu.map((section) => _buildMenuSection(context, section)),
+                  // CORRIGIDO: Garante que 'menu' é uma lista antes de mapear
+                  if (menu.isNotEmpty)
+                    ...menu.map((section) => _buildMenuSection(context, section)),
                   const SizedBox(height: 100),
                 ],
               ),
@@ -79,7 +82,7 @@ class MenuScreen extends StatelessWidget {
                 serviceTitle: restaurantTitle,
                 serviceDescription: restaurantDescription,
                 imagePath: restaurantImagePath,
-                appColors: appColors, // ADICIONADO: Passa a paleta de cores para a próxima tela
+                appColors: appColors,
               ),
             ),
           );
@@ -90,88 +93,111 @@ class MenuScreen extends StatelessWidget {
   }
 
   Widget _buildMenuSection(BuildContext context, Map<String, dynamic> section) {
+    // CORRIGIDO: Verifica se 'title' e 'items' existem e são do tipo correto
+    final String sectionTitle = section['title'] ?? 'Seção sem Título';
+    final List<dynamic> items = section['items'] ?? [];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          section['title'],
+          sectionTitle,
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: appColors.primaryText, // ALTERADO: Usa cor dinâmica
+                color: appColors.primaryText,
                 fontWeight: FontWeight.w700,
               ),
         ),
         const SizedBox(height: 12),
-        ...section['items'].map<Widget>((item) => _buildMenuItem(context, item)).toList(),
+        ...items.map<Widget>((item) => _buildMenuItem(context, item)).toList(),
         const SizedBox(height: 24),
       ],
     );
   }
 
   Widget _buildMenuItem(BuildContext context, Map<String, dynamic> item) {
+    final String itemName = item['name'] ?? 'Item sem nome';
+    final String itemDescription = item['description'] ?? 'Descrição não disponível';
+    final double itemPrice = item['price']?.toDouble() ?? 0.0;
+    final String imagePath = item['imagePath'] ?? 'assets/placeholder.jpg';
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12.0),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.asset(
-                item['imagePath'],
-                width: 80,
-                height: 80,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    width: 80,
-                    height: 80,
-                    color: appColors.borderColor, // ALTERADO: Usa cor dinâmica
-                    child: Icon(Icons.restaurant_menu, color: appColors.secondaryText), // ALTERADO: Usa cor dinâmica
-                  );
-                },
+      child: GestureDetector(
+        onTap: () {
+          // CORRIGIDO: Navegação para a tela de detalhes do produto
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ProductDetailScreen(
+                product: item,
+                appColors: appColors,
               ),
             ),
-          ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        item['name'],
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          color: appColors.primaryText, // ALTERADO: Usa cor dinâmica
+          );
+        },
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(right: 12.0),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.asset(
+                  imagePath,
+                  width: 80,
+                  height: 80,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      width: 80,
+                      height: 80,
+                      color: appColors.borderColor,
+                      child: Icon(Icons.restaurant_menu, color: appColors.secondaryText),
+                    );
+                  },
+                ),
+              ),
+            ),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          itemName,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: appColors.primaryText,
+                          ),
                         ),
                       ),
-                    ),
-                    Text(
-                      'R\$ ${item['price'].toStringAsFixed(2)}',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: appColors.primary, // ALTERADO: Usa cor dinâmica
+                      Text(
+                        'R\$ ${itemPrice.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: appColors.primary,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  item['description'],
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: appColors.secondaryText, // ALTERADO: Usa cor dinâmica
+                    ],
                   ),
-                ),
-              ],
+                  const SizedBox(height: 4),
+                  Text(
+                    itemDescription,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: appColors.secondaryText,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
