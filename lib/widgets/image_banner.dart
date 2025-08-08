@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
+import '../utils/app_theme_data.dart'; // Importa a classe de cores
 
 class ImageBanner extends StatelessWidget {
   final String imagePath;
   final double height;
   final String? gradientText;
+  final AppThemeData appColors; // ADICIONADO: Parâmetro para as cores dinâmicas
 
   const ImageBanner({
     super.key,
     required this.imagePath,
     this.height = 250.0,
     this.gradientText,
+    required this.appColors, // ADICIONADO: ao construtor
   });
 
   @override
@@ -33,7 +36,7 @@ class ImageBanner extends StatelessWidget {
                         begin: Alignment.bottomCenter,
                         end: Alignment.topCenter,
                         colors: [
-                          Colors.black.withOpacity(0.7),
+                          appColors.shadowColor, // ALTERADO: Usa a cor da sombra
                           Colors.transparent,
                         ],
                       ),
@@ -47,7 +50,7 @@ class ImageBanner extends StatelessWidget {
                     child: Text(
                       gradientText!,
                       style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                            color: Colors.white,
+                            color: appColors.background, // ALTERADO: Usa a cor de fundo (geralmente branco para o texto do banner)
                             fontWeight: FontWeight.w700,
                           ),
                     ),

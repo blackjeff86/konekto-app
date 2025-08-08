@@ -1,46 +1,191 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import '../utils/app_colors.dart';
+import 'package:flutter/services.dart' show rootBundle;
+import 'dart:convert';
 import 'services_screen.dart';
+import 'room_service_screen.dart';
 import '../widgets/custom_header.dart';
 import '../widgets/image_banner.dart';
+import '../utils/app_theme_data.dart';
 
 class HomeScreen extends StatefulWidget {
   final Map<String, dynamic> tenantConfig;
+  final AppThemeData appColors;
 
-  const HomeScreen({super.key, required this.tenantConfig});
+  const HomeScreen({
+    super.key,
+    required this.tenantConfig,
+    required this.appColors,
+  });
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  List<Map<String, dynamic>> _roomServiceMenu = [];
+  bool _isLoading = true;
+  bool _isPrecaching = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRoomServiceData();
+  }
+
+  Future<void> _loadRoomServiceData() async {
+    try {
+      final String response = await rootBundle.loadString(
+          widget.tenantConfig['roomServiceConfig']['jsonPath'] ??
+              'assets/tenants/konekto_app_default/room_service.json');
+      final List<dynamic> data = json.decode(response);
+
+      if (!mounted) return;
+
+      setState(() {
+        _roomServiceMenu = List<Map<String, dynamic>>.from(data);
+        _isLoading = false;
+      });
+      // ignore: avoid_print
+      print('Dados do Room Service carregados com sucesso. Itens: ${_roomServiceMenu.length}');
+    } catch (e) {
+      // ignore: avoid_print
+      print("Erro ao carregar dados do Room Service: $e");
+      // ignore: avoid_print
+      print('Verifique se o arquivo JSON está no caminho correto e sem erros de sintaxe.');
+
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+        _roomServiceMenu = [];
+      });
+    }
+  }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Pré-carrega as imagens da tela de Serviços e do SPA
-    _precacheServicesImages();
+    _precacheAllImagesFromJsons();
   }
 
-  void _precacheServicesImages() {
-    // IMPORTANTE: Substitua os caminhos abaixo pelos caminhos reais das suas imagens
-    const List<String> servicesImagePaths = [
-      'assets/images/services_banner.jpg', // Exemplo
-      'assets/images/servico_1.jpg',      // Exemplo
-      'assets/images/servico_2.jpg',      // Exemplo
-      'assets/images/servico_3.jpg',      // Exemplo
-    ];
+  // ignore: use_build_context_synchronously
+  Future<void> _precacheAllImagesFromJsons() async {
+    if (_isPrecaching) return;
+    _isPrecaching = true;
+    
+    List<String> allImagePaths = [];
 
-    for (var path in servicesImagePaths) {
-      precacheImage(AssetImage(path), context);
+    try {
+      final spaPaths = await _getImagePathsFromSpaJson();
+      final restaurantPaths = await _getImagePathsFromRestaurantsJson();
+      final roomServicePaths = await _getImagePathsFromRoomServiceJson();
+
+      allImagePaths = [
+        ...spaPaths,
+        ...restaurantPaths,
+        ...roomServicePaths,
+        widget.tenantConfig['bannerImages']['homeBanner'],
+        widget.tenantConfig['bannerImages']['servicesBanner'],
+        widget.tenantConfig['roomServiceConfig']['bannerPath'],
+      ];
+    } catch (e) {
+      // ignore: avoid_print
+      print("Erro ao coletar caminhos de imagens para pré-carregamento: $e");
+    }
+
+    if (mounted) {
+      for (var path in allImagePaths) {
+        if (path.isNotEmpty) {
+          precacheImage(AssetImage(path), context);
+        }
+      }
+      // ignore: avoid_print
+      print('Imagens pré-carregadas com sucesso.');
+    }
+    
+    _isPrecaching = false;
+  }
+
+  Future<List<String>> _getImagePathsFromSpaJson() async {
+    try {
+      final String response = await rootBundle.loadString(
+          'assets/tenants/konekto_app_default/spa.json');
+      // CORREÇÃO: O JSON do spa é uma lista, não um mapa.
+      final List<dynamic> data = json.decode(response);
+      List<String> paths = [];
+      for (var item in data) {
+          if (item.containsKey('imagePath')) {
+              paths.add(item['imagePath']);
+          }
+      }
+      return paths;
+    } catch (e) {
+      // ignore: avoid_print
+      print("Erro ao carregar imagens do SPA: $e");
+      return [];
+    }
+  }
+
+  Future<List<String>> _getImagePathsFromRestaurantsJson() async {
+    try {
+      final String response = await rootBundle.loadString(
+          'assets/tenants/konekto_app_default/restaurants_data.json');
+      final Map<String, dynamic> data = json.decode(response);
+      List<String> paths = [];
+      for (var restaurant in data['restaurants']) {
+        paths.add(restaurant['imagePath']);
+        for (var section in restaurant['menu']) {
+          for (var item in section['items']) {
+            if (item.containsKey('imagePath')) {
+              paths.add(item['imagePath']);
+            }
+          }
+        }
+      }
+      return paths;
+    } catch (e) {
+      // ignore: avoid_print
+      print("Erro ao carregar imagens de Restaurantes: $e");
+      return [];
+    }
+  }
+
+  Future<List<String>> _getImagePathsFromRoomServiceJson() async {
+    try {
+      final String response = await rootBundle.loadString(
+          'assets/tenants/konekto_app_default/room_service.json');
+      final List<dynamic> data = json.decode(response);
+      List<String> paths = [];
+      for (var section in data) {
+        for (var item in section['items']) {
+          if (item.containsKey('imagePath')) {
+            paths.add(item['imagePath']);
+          }
+        }
+      }
+      return paths;
+    } catch (e) {
+      // ignore: avoid_print
+      print("Erro ao carregar imagens do Room Service: $e");
+      return [];
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: widget.appColors.background,
+        body: Center(
+          child: CircularProgressIndicator(
+            color: widget.appColors.primary,
+          ),
+        ),
+      );
+    }
+    
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: widget.appColors.background,
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -49,15 +194,17 @@ class _HomeScreenState extends State<HomeScreen> {
               title: widget.tenantConfig['name'] ?? 'Konekto App',
               leading: const SizedBox(width: 48),
               trailing: IconButton(
-                icon: const Icon(Icons.settings, color: AppColors.primaryText),
+                icon: Icon(Icons.settings, color: widget.appColors.primaryText),
                 onPressed: () {
                   // Ação para o botão de configurações
                 },
               ),
+              appColors: widget.appColors,
             ),
-            const ImageBanner(
-              imagePath: 'assets/images/pool_background.png',
+            ImageBanner(
+              imagePath: widget.tenantConfig['bannerImages']['homeBanner'],
               height: 250,
+              appColors: widget.appColors,
             ),
             _buildWelcomeInfo(context),
             _buildAccessInfo(context),
@@ -78,7 +225,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Text(
             'Bem-vindo, Lucas!',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: AppColors.primaryText,
+                  color: widget.appColors.primaryText,
                   fontWeight: FontWeight.w700,
                 ),
           ),
@@ -86,7 +233,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Text(
             'Check-in realizado com sucesso! Seu quarto é o 305.',
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: AppColors.primaryText,
+                  color: widget.appColors.primaryText,
                 ),
           ),
         ],
@@ -103,7 +250,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Text(
             'Dados de acesso',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: AppColors.primaryText,
+                  color: widget.appColors.primaryText,
                   fontWeight: FontWeight.w700,
                 ),
           ),
@@ -125,15 +272,15 @@ class _HomeScreenState extends State<HomeScreen> {
         Text(
           title,
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: AppColors.primaryText,
+                color: widget.appColors.primaryText,
                 fontWeight: FontWeight.w600,
               ),
         ),
         const SizedBox(width: 8),
-        const Text(
+        Text(
           '|',
           style: TextStyle(
-            color: AppColors.secondaryText,
+            color: widget.appColors.secondaryText,
             fontSize: 16,
           ),
         ),
@@ -141,7 +288,7 @@ class _HomeScreenState extends State<HomeScreen> {
         Text(
           subtitle,
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: AppColors.primaryText,
+                color: widget.appColors.primaryText,
               ),
         ),
       ],
@@ -155,9 +302,45 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           Row(
             children: [
-              _buildNavigationButton(context, 'Serviços', Icons.room_service),
+              _buildNavigationButton(
+                context,
+                'Serviços',
+                Icons.room_service,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ServicesScreen(
+                        tenantConfig: widget.tenantConfig,
+                        appColors: widget.appColors,
+                        roomServiceMenu: _roomServiceMenu, // CORREÇÃO: Passando o menu
+                      ),
+                    ),
+                  );
+                },
+              ),
               const SizedBox(width: 12),
-              _buildNavigationButton(context, 'Loja', Icons.store),
+              _buildNavigationButton(
+                context,
+                'Room Service',
+                Icons.restaurant_menu,
+                onTap: () {
+                  if (_roomServiceMenu.isNotEmpty) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => RoomServiceScreen(
+                          serviceTitle: 'Room Service',
+                          serviceDescription: widget.tenantConfig['roomServiceConfig']['description'],
+                          serviceImagePath: widget.tenantConfig['roomServiceConfig']['bannerPath'],
+                          menu: _roomServiceMenu,
+                          appColors: widget.appColors,
+                        ),
+                      ),
+                    );
+                  }
+                },
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -174,35 +357,35 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildNavigationButton(
-      BuildContext context, String title, IconData icon) {
+      BuildContext context, String title, IconData icon,
+      {VoidCallback? onTap}) {
     return Expanded(
       child: InkWell(
-        onTap: () {
-          if (title == 'Serviços') {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => ServicesScreen(tenantConfig: widget.tenantConfig),
-              ),
-            );
-          }
-        },
+        onTap: onTap,
         child: Container(
           height: 80,
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border.all(color: AppColors.borderColor),
+            color: widget.appColors.background,
+            border: Border.all(color: widget.appColors.borderColor),
             borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: widget.appColors.shadowColor,
+                spreadRadius: 1,
+                blurRadius: 5,
+                offset: const Offset(0, 3),
+              ),
+            ],
           ),
           child: Row(
             children: [
-              Icon(icon, size: 24, color: AppColors.primaryText),
+              Icon(icon, size: 24, color: widget.appColors.primaryText),
               const SizedBox(width: 12),
               Text(
                 title,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: AppColors.primaryText,
+                      color: widget.appColors.primaryText,
                       fontWeight: FontWeight.w700,
                     ),
               ),
@@ -215,9 +398,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildBottomNavigationBar(BuildContext context) {
     return BottomNavigationBar(
+      backgroundColor: widget.appColors.background,
       type: BottomNavigationBarType.fixed,
-      selectedItemColor: AppColors.primaryText,
-      unselectedItemColor: AppColors.secondaryText,
+      selectedItemColor: widget.appColors.primary,
+      unselectedItemColor: widget.appColors.secondaryText,
       showSelectedLabels: false,
       showUnselectedLabels: false,
       items: const [

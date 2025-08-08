@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
-import '../utils/app_colors.dart';
+import '../utils/app_theme_data.dart';
 
 class BottomButtons extends StatelessWidget {
   final String text;
   final VoidCallback onPressed;
+  final AppThemeData appColors; // ADICIONADO: Parâmetro para as cores dinâmicas
 
   const BottomButtons({
     super.key,
     required this.text,
     required this.onPressed,
+    required this.appColors, // ADICIONADO: ao construtor
   });
 
   @override
@@ -22,7 +24,7 @@ class BottomButtons extends StatelessWidget {
         child: ElevatedButton(
           onPressed: onPressed,
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
+            backgroundColor: appColors.primary, // ALTERADO: Usa cor dinâmica
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(24),
             ),

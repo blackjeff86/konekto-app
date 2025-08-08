@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../utils/app_colors.dart';
+import '../utils/app_theme_data.dart';
 import '../widgets/custom_header.dart';
 import '../widgets/image_banner.dart';
 import '../widgets/bottom_buttons.dart';
@@ -9,12 +9,14 @@ class ScheduleScreen extends StatefulWidget {
   final String serviceTitle;
   final String serviceDescription;
   final String imagePath;
+  final AppThemeData appColors;
 
   const ScheduleScreen({
     super.key,
     required this.serviceTitle,
     required this.serviceDescription,
     required this.imagePath,
+    required this.appColors,
   });
 
   @override
@@ -26,8 +28,16 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   DateTime _focusedDay = DateTime.now();
   String? _selectedTime;
   final List<String> _availableTimes = [
-    '09:00', '10:00', '11:00', '12:00', '13:00',
-    '14:00', '15:00', '16:00', '17:00', '18:00',
+    '09:00',
+    '10:00',
+    '11:00',
+    '12:00',
+    '13:00',
+    '14:00',
+    '15:00',
+    '16:00',
+    '17:00',
+    '18:00',
   ];
 
   @override
@@ -36,7 +46,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     _selectedDay = DateTime.now();
   }
 
-  // Novo método para construir a grade de dias
   List<Widget> _buildDaysGrid() {
     final now = DateTime.now();
     final firstDayOfMonth = DateTime(_focusedDay.year, _focusedDay.month, 1);
@@ -45,15 +54,16 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
     List<Widget> days = [];
 
-    // Adiciona placeholders para os dias da semana anteriores ao primeiro dia do mês
     for (int i = 0; i < startWeekday - 1; i++) {
       days.add(const SizedBox());
     }
 
-    // Adiciona os dias do mês
     for (int i = 1; i <= daysInMonth; i++) {
       final day = DateTime(_focusedDay.year, _focusedDay.month, i);
-      final isSelected = _selectedDay != null && day.day == _selectedDay!.day && day.month == _selectedDay!.month && day.year == _selectedDay!.year;
+      final isSelected = _selectedDay != null &&
+          day.day == _selectedDay!.day &&
+          day.month == _selectedDay!.month &&
+          day.year == _selectedDay!.year;
       final isToday = day.day == now.day && day.month == now.month && day.year == now.year;
 
       days.add(
@@ -70,14 +80,16 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           child: Container(
             margin: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: isSelected ? AppColors.primary : (isToday ? AppColors.accent.withOpacity(0.2) : AppColors.background),
+              color: isSelected
+                  ? widget.appColors.primary
+                  : (isToday ? widget.appColors.accent.withOpacity(0.2) : widget.appColors.background),
               shape: BoxShape.circle,
             ),
             child: Center(
               child: Text(
                 i.toString(),
                 style: TextStyle(
-                  color: isSelected ? Colors.white : AppColors.primaryText,
+                  color: isSelected ? widget.appColors.background : widget.appColors.primaryText,
                   fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
                 ),
               ),
@@ -92,18 +104,19 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: widget.appColors.background,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(kToolbarHeight),
         child: CustomHeader(
           title: 'Agendamento',
           leading: IconButton(
-            icon: const Icon(Icons.close, color: AppColors.primaryText),
+            icon: Icon(Icons.close, color: widget.appColors.primaryText),
             onPressed: () {
               Navigator.pop(context);
             },
           ),
           trailing: const SizedBox.shrink(),
+          appColors: widget.appColors, // ADICIONADO: Passa a paleta de cores para o CustomHeader
         ),
       ),
       body: ListView(
@@ -112,6 +125,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             imagePath: widget.imagePath,
             height: 250,
             gradientText: widget.serviceTitle,
+            appColors: widget.appColors, // ADICIONADO: Passa a paleta de cores para o ImageBanner
           ),
           _buildScheduleContent(context),
           const SizedBox(height: 100),
@@ -119,11 +133,44 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       ),
       bottomNavigationBar: BottomButtons(
         text: 'Agendar agora',
+        appColors: widget.appColors, // ADICIONADO: Passa a paleta de cores para o BottomButtons
         onPressed: () {
           if (_selectedDay != null && _selectedTime != null) {
-            debugPrint('Serviço ${widget.serviceTitle} agendado para o dia $_selectedDay às $_selectedTime');
+            showDialog(
+              context: context,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  backgroundColor: widget.appColors.background,
+                  title: Text(
+                    'Agendamento Confirmado!',
+                    style: TextStyle(color: widget.appColors.primaryText),
+                  ),
+                  content: Text(
+                    'Seu agendamento para ${DateFormat('dd/MM/yyyy', 'pt_BR').format(_selectedDay!)} às $_selectedTime foi realizado com sucesso. Aguardamos você!',
+                    style: TextStyle(color: widget.appColors.secondaryText),
+                  ),
+                  actions: [
+                    TextButton(
+                      child: Text('OK', style: TextStyle(color: widget.appColors.primary)),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                  ],
+                );
+              },
+            );
           } else {
-            debugPrint('Por favor, selecione um dia e um horário.');
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Por favor, selecione a data e o horário.',
+                  style: TextStyle(color: widget.appColors.background),
+                ),
+                backgroundColor: widget.appColors.error,
+              ),
+            );
           }
         },
       ),
@@ -140,14 +187,14 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           Text(
             widget.serviceDescription,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.secondaryText,
+                  color: widget.appColors.secondaryText,
                 ),
           ),
           const SizedBox(height: 24),
           Text(
             'Datas disponíveis',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: AppColors.primaryText,
+                  color: widget.appColors.primaryText,
                   fontWeight: FontWeight.w700,
                 ),
           ),
@@ -157,7 +204,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           Text(
             'Horários disponíveis',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: AppColors.primaryText,
+                  color: widget.appColors.primaryText,
                   fontWeight: FontWeight.w700,
                 ),
           ),
@@ -173,11 +220,11 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: AppColors.background,
+        color: widget.appColors.background,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: AppColors.shadowColor,
+            color: widget.appColors.shadowColor,
             spreadRadius: 1,
             blurRadius: 5,
             offset: const Offset(0, 3),
@@ -190,7 +237,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               IconButton(
-                icon: const Icon(Icons.chevron_left, color: AppColors.primaryText),
+                icon: Icon(Icons.chevron_left, color: widget.appColors.primaryText),
                 onPressed: () {
                   setState(() {
                     _focusedDay = DateTime(_focusedDay.year, _focusedDay.month - 1, _focusedDay.day);
@@ -200,12 +247,12 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               Text(
                 '${DateFormat('MMMM', 'pt_BR').format(_focusedDay)} ${_focusedDay.year}',
                 style: Theme.of(context).textTheme.titleMedium!.copyWith(
-                  color: AppColors.primaryText,
-                  fontWeight: FontWeight.bold,
-                ),
+                      color: widget.appColors.primaryText,
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
               IconButton(
-                icon: const Icon(Icons.chevron_right, color: AppColors.primaryText),
+                icon: Icon(Icons.chevron_right, color: widget.appColors.primaryText),
                 onPressed: () {
                   setState(() {
                     _focusedDay = DateTime(_focusedDay.year, _focusedDay.month + 1, _focusedDay.day);
@@ -218,15 +265,19 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildWeekdayText('Seg'), _buildWeekdayText('Ter'), _buildWeekdayText('Qua'),
-              _buildWeekdayText('Qui'), _buildWeekdayText('Sex'), _buildWeekdayText('Sáb'),
+              _buildWeekdayText('Seg'),
+              _buildWeekdayText('Ter'),
+              _buildWeekdayText('Qua'),
+              _buildWeekdayText('Qui'),
+              _buildWeekdayText('Sex'),
+              _buildWeekdayText('Sáb'),
               _buildWeekdayText('Dom'),
             ],
           ),
           const SizedBox(height: 8),
           GridView.count(
             shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(), // Desativa a rolagem da grade
+            physics: const NeverScrollableScrollPhysics(),
             crossAxisCount: 7,
             children: _buildDaysGrid(),
           ),
@@ -234,14 +285,14 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       ),
     );
   }
-  
+
   Widget _buildWeekdayText(String text) {
     return SizedBox(
       width: 32,
       child: Center(
         child: Text(
           text,
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.bold, color: widget.appColors.primaryText),
         ),
       ),
     );
@@ -272,16 +323,16 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : AppColors.background,
+          color: isSelected ? widget.appColors.primary : widget.appColors.background,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.borderColor,
+            color: isSelected ? widget.appColors.primary : widget.appColors.borderColor,
           ),
         ),
         child: Text(
           time,
           style: TextStyle(
-            color: isSelected ? Colors.white : AppColors.primaryText,
+            color: isSelected ? widget.appColors.background : widget.appColors.primaryText,
             fontSize: 14,
             fontWeight: FontWeight.w500,
           ),

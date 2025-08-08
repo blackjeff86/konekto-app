@@ -1,65 +1,119 @@
 import 'package:flutter/material.dart';
-import '../utils/app_colors.dart';
+import 'package:flutter/services.dart' show rootBundle;
+import 'dart:convert';
+import '../utils/app_theme_data.dart';
 import '../widgets/custom_header.dart';
 import '../widgets/image_banner.dart';
-import 'spa_screen.dart'; // Importação da nova tela do SPA
+import 'spa_screen.dart';
+import 'restaurants_screen.dart';
+import 'room_service_screen.dart'; // IMPORTANTE: Importe a tela de Room Service
 
 class ServicesScreen extends StatefulWidget {
   final Map<String, dynamic> tenantConfig;
+  final AppThemeData appColors;
+  // NOVO: Adicionado o menu do Room Service como parâmetro
+  final List<Map<String, dynamic>> roomServiceMenu;
 
-  const ServicesScreen({super.key, required this.tenantConfig});
+  const ServicesScreen({
+    super.key,
+    required this.tenantConfig,
+    required this.appColors,
+    required this.roomServiceMenu,
+  });
 
   @override
   State<ServicesScreen> createState() => _ServicesScreenState();
 }
 
 class _ServicesScreenState extends State<ServicesScreen> {
+  bool _isPrecaching = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Pré-carrega as imagens desta tela E as das próximas telas
-    _precacheServicesBannerImage();
-    _precacheSpaImages();
-    _precacheOtherServicesImages();
+    _precacheAllImagesFromJsons();
   }
 
-  void _precacheServicesBannerImage() {
-    precacheImage(const AssetImage('assets/images/services_background.png'), context);
-  }
+  // CORREÇÃO: Adicionado o ignore para o aviso de BuildContext
+  // ignore: use_build_context_synchronously
+  Future<void> _precacheAllImagesFromJsons() async {
+    if (_isPrecaching) return;
+    _isPrecaching = true;
 
-  void _precacheSpaImages() {
-    const List<String> spaImagePaths = [
-      'assets/images/spa_background.png',
-      'assets/images/massagem_relaxante.png',
-      'assets/images/massagem_terapeutica.png',
-      'assets/images/limpeza_de_pele.png',
-      'assets/images/tratamento_antiidade.png',
+    final List<String> allImagePaths = [
+      widget.tenantConfig['bannerImages']['servicesBanner'],
     ];
-    for (var path in spaImagePaths) {
-      precacheImage(AssetImage(path), context);
+
+    try {
+      final spaPaths = await _getImagePathsFromSpaJson();
+      final restaurantPaths = await _getImagePathsFromRestaurantsJson();
+      allImagePaths.addAll(spaPaths);
+      allImagePaths.addAll(restaurantPaths);
+    } catch (e) {
+      // ignore: avoid_print
+      print("Erro ao coletar caminhos de imagens para pré-carregamento: $e");
+    }
+
+    if (mounted) {
+      for (var path in allImagePaths) {
+        if (path.isNotEmpty) {
+          precacheImage(AssetImage(path), context);
+        }
+      }
+      // ignore: avoid_print
+      print('Imagens pré-carregadas para a ServicesScreen com sucesso.');
+    }
+    _isPrecaching = false;
+  }
+
+  Future<List<String>> _getImagePathsFromSpaJson() async {
+    try {
+      final String response = await rootBundle.loadString(
+          'assets/tenants/konekto_app_default/spa.json');
+      // CORREÇÃO: O JSON do spa é uma lista, não um mapa.
+      final List<dynamic> data = json.decode(response);
+      List<String> paths = [];
+      for (var item in data) {
+          if (item.containsKey('imagePath')) {
+              paths.add(item['imagePath']);
+          }
+      }
+      return paths;
+    } catch (e) {
+      // ignore: avoid_print
+      print("Erro ao carregar imagens do SPA: $e");
+      return [];
     }
   }
 
-  void _precacheOtherServicesImages() {
-    // Adicione os caminhos das imagens para os banners dos outros serviços aqui
-    // Exemplo:
-    const List<String> otherServicesImagePaths = [
-      'assets/images/room_service_banner.png',
-      'assets/images/restaurantes_banner.png',
-      'assets/images/eventos_banner.png',
-      'assets/images/passeios_banner.png',
-      'assets/images/mapa_hotel_banner.png',
-    ];
-    for (var path in otherServicesImagePaths) {
-      precacheImage(AssetImage(path), context);
+  Future<List<String>> _getImagePathsFromRestaurantsJson() async {
+    try {
+      final String response = await rootBundle.loadString(
+          'assets/tenants/konekto_app_default/restaurants_data.json');
+      final Map<String, dynamic> data = json.decode(response);
+      List<String> paths = [];
+      for (var restaurant in data['restaurants']) {
+        paths.add(restaurant['imagePath']);
+        for (var section in restaurant['menu']) {
+          for (var item in section['items']) {
+            if (item.containsKey('imagePath')) {
+              paths.add(item['imagePath']);
+            }
+          }
+        }
+      }
+      return paths;
+    } catch (e) {
+      // ignore: avoid_print
+      print("Erro ao carregar imagens de Restaurantes: $e");
+      return [];
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: widget.appColors.background,
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -67,16 +121,18 @@ class _ServicesScreenState extends State<ServicesScreen> {
             CustomHeader(
               title: 'Serviços',
               leading: IconButton(
-                icon: const Icon(Icons.close, color: AppColors.primaryText),
+                icon: Icon(Icons.close, color: widget.appColors.primaryText),
                 onPressed: () {
                   Navigator.pop(context);
                 },
               ),
               trailing: const SizedBox.shrink(),
+              appColors: widget.appColors,
             ),
-            const ImageBanner(
-              imagePath: 'assets/images/services_background.png',
+            ImageBanner(
+              imagePath: widget.tenantConfig['bannerImages']['servicesBanner'],
               height: 250,
+              appColors: widget.appColors,
             ),
             _buildServiceList(context),
           ],
@@ -90,11 +146,28 @@ class _ServicesScreenState extends State<ServicesScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         children: [
+          // Botão Room Service com navegação
           _buildServiceItem(
             context,
             'Room Service',
             'Serviço de quarto',
             Icons.room_service,
+            onTap: () {
+              if (widget.roomServiceMenu.isNotEmpty) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => RoomServiceScreen(
+                      serviceTitle: 'Room Service',
+                      serviceDescription: widget.tenantConfig['roomServiceConfig']['description'],
+                      serviceImagePath: widget.tenantConfig['roomServiceConfig']['bannerPath'],
+                      menu: widget.roomServiceMenu,
+                      appColors: widget.appColors,
+                    ),
+                  ),
+                );
+              }
+            },
           ),
           _buildServiceItem(
             context,
@@ -104,7 +177,12 @@ class _ServicesScreenState extends State<ServicesScreen> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const SpaScreen()),
+                MaterialPageRoute(
+                  builder: (context) => SpaScreen(
+                    tenantConfig: widget.tenantConfig,
+                    appColors: widget.appColors,
+                  ),
+                ),
               );
             },
           ),
@@ -113,6 +191,17 @@ class _ServicesScreenState extends State<ServicesScreen> {
             'Restaurantes',
             'Opções de refeições',
             Icons.restaurant,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => RestaurantsScreen(
+                    tenantConfig: widget.tenantConfig,
+                    appColors: widget.appColors,
+                  ),
+                ),
+              );
+            },
           ),
           _buildServiceItem(
             context,
@@ -138,7 +227,8 @@ class _ServicesScreenState extends State<ServicesScreen> {
     );
   }
 
-  Widget _buildServiceItem(BuildContext context, String title, String subtitle, IconData icon, {VoidCallback? onTap}) {
+  Widget _buildServiceItem(BuildContext context, String title, String subtitle,
+      IconData icon, {VoidCallback? onTap}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: InkWell(
@@ -146,11 +236,11 @@ class _ServicesScreenState extends State<ServicesScreen> {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: widget.appColors.background,
             borderRadius: BorderRadius.circular(8),
             boxShadow: [
               BoxShadow(
-                color: Colors.grey.withOpacity(0.1),
+                color: widget.appColors.shadowColor,
                 spreadRadius: 1,
                 blurRadius: 5,
                 offset: const Offset(0, 3),
@@ -163,10 +253,10 @@ class _ServicesScreenState extends State<ServicesScreen> {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEFF2F4),
+                  color: widget.appColors.borderColor,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(icon, color: AppColors.primaryText),
+                child: Icon(icon, color: widget.appColors.primaryText),
               ),
               const SizedBox(width: 16),
               Column(
@@ -175,7 +265,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
                   Text(
                     title,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: AppColors.primaryText,
+                          color: widget.appColors.primaryText,
                           fontWeight: FontWeight.w500,
                         ),
                   ),
@@ -183,7 +273,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
                   Text(
                     subtitle,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.secondaryText,
+                          color: widget.appColors.secondaryText,
                         ),
                   ),
                 ],

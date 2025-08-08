@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
-import '../utils/app_colors.dart';
+import '../utils/app_theme_data.dart'; // CORRIGIDO: Usa a nova classe de cores
 
 class CustomHeader extends StatelessWidget {
   final String title;
   final Widget? leading;
   final Widget? trailing;
+  final AppThemeData appColors; // ADICIONADO: Parâmetro para as cores dinâmicas
 
   const CustomHeader({
     super.key,
     required this.title,
+    required this.appColors, // ADICIONADO: ao construtor
     this.leading,
     this.trailing,
   });
@@ -29,7 +31,7 @@ class CustomHeader extends StatelessWidget {
               title,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: AppColors.primaryText,
+                    color: appColors.primaryText, // ALTERADO: Usa cor dinâmica
                     fontWeight: FontWeight.w700,
                     fontSize: 20,
                   ),

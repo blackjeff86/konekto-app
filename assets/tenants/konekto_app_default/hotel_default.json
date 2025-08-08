@@ -1,0 +1,26 @@
+{
+  "name": "Hotel Konekto",
+  "logoPath": "assets/tenants/konekto_app_default/logos/default_logo.png",
+  "apiBaseUrl": "https://api.konekto.app/default",
+  "bannerImages": {
+    "homeBanner": "assets/tenants/konekto_app_default/images/banners/pool_background.png",
+    "servicesBanner": "assets/tenants/konekto_app_default/images/banners/services_background.png"
+  },
+  "colors": {
+    "primary": "0xFF0F172A",
+    "accent": "0xFF1E293B",
+    "primaryText": "0xFF111416",
+    "secondaryText": "0xFF637287",
+    "background": "0xFFF8FAFC",
+    "borderColor": "0xFFE5E8EA",
+    "success": "0xFF10B981",
+    "warning": "0xFFF59E0B",
+    "error": "0xFFEF4444",
+    "shadowColor": "0x1A000000"
+  },
+  "roomServiceConfig": {
+    "jsonPath": "assets/tenants/konekto_app_default/room_service.json",
+    "bannerPath": "assets/tenants/konekto_app_default/images/banners/room_service_banner.png",
+    "description": "Desfrute de refeições e bebidas no conforto do seu quarto, disponíveis 24 horas."
+  }
+}

@@ -1,43 +1,60 @@
 import 'package:flutter/material.dart';
-import '../utils/app_colors.dart';
+import 'package:flutter/services.dart' show rootBundle;
+import 'dart:convert';
+import '../utils/app_theme_data.dart';
 import '../widgets/custom_header.dart';
 import '../widgets/image_banner.dart';
 import 'schedule_screen.dart';
 
 class SpaScreen extends StatefulWidget {
-  const SpaScreen({super.key});
+  final Map<String, dynamic> tenantConfig;
+  final AppThemeData appColors;
+
+  const SpaScreen({
+    super.key,
+    required this.tenantConfig,
+    required this.appColors,
+  });
 
   @override
   State<SpaScreen> createState() => _SpaScreenState();
 }
 
 class _SpaScreenState extends State<SpaScreen> {
+  List<dynamic> _spaServices = [];
+  bool _isLoading = true;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Pré-carrega todas as imagens da tela do SPA
-    _precacheSpaImages();
+  void initState() {
+    super.initState();
+    _loadSpaServices();
   }
 
-  void _precacheSpaImages() {
-    const List<String> spaImagePaths = [
-      'assets/images/spa_background.png',
-      'assets/images/massagem_relaxante.png',
-      'assets/images/massagem_terapeutica.png',
-      'assets/images/limpeza_de_pele.png',
-      'assets/images/tratamento_antiidade.png',
-    ];
+  Future<void> _loadSpaServices() async {
+    try {
+      final String response = await rootBundle.loadString(
+          widget.tenantConfig['spaJsonPath'] ??
+              'assets/tenants/konekto_app_default/spa.json');
+      final Map<String, dynamic> data = json.decode(response);
 
-    for (var path in spaImagePaths) {
-      precacheImage(AssetImage(path), context);
+      setState(() {
+        _spaServices = data['spa_services'];
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('ERRO FATAL: Falha ao carregar ou decodificar os dados do spa.');
+      print('Detalhes do erro: $e');
+      setState(() {
+        _isLoading = false;
+        _spaServices = [];
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: widget.appColors.background,
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -45,18 +62,29 @@ class _SpaScreenState extends State<SpaScreen> {
             CustomHeader(
               title: 'SPA',
               leading: IconButton(
-                icon: const Icon(Icons.close, color: AppColors.primaryText),
+                icon: Icon(Icons.arrow_back, color: widget.appColors.primaryText),
                 onPressed: () {
                   Navigator.pop(context);
                 },
               ),
               trailing: const SizedBox.shrink(),
+              appColors: widget.appColors,
             ),
-            const ImageBanner(
-              imagePath: 'assets/images/spa_background.png',
+            ImageBanner(
+              imagePath: widget.tenantConfig['spaBannerPath'] ??
+                  'assets/tenants/konekto_app_default/images/spa/spa_background.png',
               height: 250,
+              gradientText: 'Spa e Bem-Estar',
+              appColors: widget.appColors,
             ),
-            _buildSpaContent(context),
+            _isLoading
+                ? Padding(
+                    padding: const EdgeInsets.all(32.0),
+                    child: Center(
+                      child: CircularProgressIndicator(color: widget.appColors.primary),
+                    ),
+                  )
+                : _buildSpaContent(context),
             const SizedBox(height: 24),
           ],
         ),
@@ -70,100 +98,14 @@ class _SpaScreenState extends State<SpaScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 20),
-          Text(
-            'Massagens',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: AppColors.primaryText,
-                  fontWeight: FontWeight.w700,
-                ),
-          ),
-          const SizedBox(height: 12),
-          _buildServiceItem(
-            context,
-            'Massagem Relaxante',
-            'Alivia o estresse e a tensão muscular com movimentos suaves e óleos essenciais.',
-            '60 min',
-            'assets/images/massagem_relaxante.png',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const ScheduleScreen(
-                    serviceTitle: 'Massagem Relaxante',
-                    serviceDescription: 'Alivia o estresse e a tensão muscular com movimentos suaves e óleos essenciais.',
-                    imagePath: 'assets/images/massagem_relaxante.png',
-                  ),
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 12),
-          _buildServiceItem(
-            context,
-            'Massagem Terapêutica',
-            'Tratamento profundo para dores musculares e articulares, com técnicas avançadas.',
-            '90 min',
-            'assets/images/massagem_terapeutica.png',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const ScheduleScreen(
-                    serviceTitle: 'Massagem Terapêutica',
-                    serviceDescription: 'Tratamento profundo para dores musculares e articulares, com técnicas avançadas.',
-                    imagePath: 'assets/images/massagem_terapeutica.png',
-                  ),
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 24),
-          Text(
-            'Tratamentos Faciais',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: AppColors.primaryText,
-                  fontWeight: FontWeight.w700,
-                ),
-          ),
-          const SizedBox(height: 12),
-          _buildServiceItem(
-            context,
-            'Limpeza de Pele Profunda',
-            'Remove impurezas e cravos, deixando a pele limpa e revitalizada.',
-            '45 min',
-            'assets/images/limpeza_de_pele.png',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const ScheduleScreen(
-                    serviceTitle: 'Limpeza de Pele Profunda',
-                    serviceDescription: 'Remove impurezas e cravos, deixando a pele limpa e revitalizada.',
-                    imagePath: 'assets/images/limpeza_de_pele.png',
-                  ),
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 12),
-          _buildServiceItem(
-            context,
-            'Tratamento Anti-idade',
-            'Reduz rugas e linhas de expressão, promovendo uma pele mais jovem e firme.',
-            '60 min',
-            'assets/images/tratamento_antiidade.png',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const ScheduleScreen(
-                    serviceTitle: 'Tratamento Anti-idade',
-                    serviceDescription: 'Reduz rugas e linhas de expressão, promovendo uma pele mais jovem e firme.',
-                    imagePath: 'assets/images/tratamento_antiidade.png',
-                  ),
-                ),
-              );
+          // REMOVIDO: A parte com o título "Nossos Serviços" foi removida.
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: _spaServices.length,
+            itemBuilder: (context, index) {
+              final service = _spaServices[index];
+              return _buildServiceItem(context, service);
             },
           ),
         ],
@@ -171,19 +113,30 @@ class _SpaScreenState extends State<SpaScreen> {
     );
   }
 
-  Widget _buildServiceItem(
-      BuildContext context, String title, String subtitle, String duration, String imagePath, {VoidCallback? onTap}) {
+  Widget _buildServiceItem(BuildContext context, Map<String, dynamic> service) {
     return InkWell(
-      onTap: onTap,
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ScheduleScreen(
+              serviceTitle: service['title'],
+              serviceDescription: service['description'],
+              imagePath: service['imagePath'],
+              appColors: widget.appColors,
+            ),
+          ),
+        );
+      },
       child: Container(
-        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: widget.appColors.background,
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
+              color: widget.appColors.shadowColor,
               spreadRadius: 1,
               blurRadius: 5,
               offset: const Offset(0, 3),
@@ -191,7 +144,6 @@ class _SpaScreenState extends State<SpaScreen> {
           ],
         ),
         child: Row(
-          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
@@ -199,24 +151,25 @@ class _SpaScreenState extends State<SpaScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    duration,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.secondaryText,
-                        ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    title,
+                    service['title'],
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: AppColors.primaryText,
+                          color: widget.appColors.primaryText,
                           fontWeight: FontWeight.w700,
                         ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    subtitle,
+                    service['description'],
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.secondaryText,
+                          color: widget.appColors.secondaryText,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'R\$ ${service['price'].toStringAsFixed(2)}',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: widget.appColors.primary,
+                          fontWeight: FontWeight.w700,
                         ),
                   ),
                 ],
@@ -226,10 +179,18 @@ class _SpaScreenState extends State<SpaScreen> {
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: Image.asset(
-                imagePath,
+                service['imagePath'],
                 width: 130,
                 height: 112,
                 fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    width: 130,
+                    height: 112,
+                    color: widget.appColors.borderColor,
+                    child: Icon(Icons.spa, color: widget.appColors.secondaryText),
+                  );
+                },
               ),
             ),
           ],
