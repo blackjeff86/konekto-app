@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../utils/app_theme_data.dart';
 import '../widgets/custom_header.dart';
 import '../widgets/image_banner.dart';
-import 'product_detail_screen.dart'; // Importa a nova tela
+import 'product_detail_screen.dart';
 
 class RoomServiceScreen extends StatelessWidget {
   final String serviceTitle;
@@ -24,127 +24,159 @@ class RoomServiceScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: appColors.background,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(kToolbarHeight),
+        child: CustomHeader(
+          title: 'Serviço de Quarto',
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back, color: appColors.primaryText),
+            onPressed: () {
+              Navigator.pop(context);
+            },
+          ),
+          trailing: const SizedBox.shrink(),
+          appColors: appColors,
+        ),
+      ),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            CustomHeader(
-              title: serviceTitle,
-              leading: IconButton(
-                icon: Icon(Icons.arrow_back, color: appColors.primaryText),
-                onPressed: () => Navigator.pop(context),
-              ),
-              trailing: const SizedBox.shrink(),
-              appColors: appColors,
-            ),
             ImageBanner(
               imagePath: serviceImagePath,
-              height: 200,
+              height: 250,
+              gradientText: serviceTitle,
               appColors: appColors,
             ),
             Padding(
               padding: const EdgeInsets.all(16.0),
-              child: Text(
-                serviceDescription,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: appColors.primaryText,
-                    ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    serviceDescription,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: appColors.secondaryText,
+                        ),
+                  ),
+                  const SizedBox(height: 24),
+                  if (menu.isNotEmpty)
+                    ...menu.map((section) => _buildMenuSection(context, section)),
+                  const SizedBox(height: 24),
+                ],
               ),
             ),
-            _buildMenu(context),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildMenu(BuildContext context) {
+  Widget _buildMenuSection(BuildContext context, Map<String, dynamic> section) {
+    final String sectionTitle = section['title'] ?? 'Seção sem Título';
+    final List<dynamic> items = section['items'] ?? [];
+
     return Column(
-      children: menu.map((category) {
-        return ExpansionTile(
-          title: Text(
-            category['category'],
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: appColors.primaryText,
-                  fontWeight: FontWeight.bold,
-                ),
-          ),
-          initiallyExpanded: true,
-          children: category['items'].map<Widget>((item) {
-            return _buildMenuItem(context, item);
-          }).toList(),
-        );
-      }).toList(),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          sectionTitle,
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: appColors.primaryText,
+                fontWeight: FontWeight.w700,
+              ),
+        ),
+        const SizedBox(height: 12),
+        ...items.map<Widget>((item) => _buildMenuItem(context, item)),
+        const SizedBox(height: 24),
+      ],
     );
   }
 
   Widget _buildMenuItem(BuildContext context, Map<String, dynamic> item) {
-    return InkWell(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ProductDetailScreen(
-              product: item,
-              appColors: appColors,
-            ),
-          ),
-        );
-      },
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: appColors.background,
-          borderRadius: BorderRadius.circular(8),
-          boxShadow: [
-            BoxShadow(
-              color: appColors.shadowColor,
-              spreadRadius: 1,
-              blurRadius: 5,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.asset(
-                item['imagePath'] ?? 'assets/placeholder.jpg',
-                width: 80,
-                height: 80,
-                fit: BoxFit.cover,
+    final String itemName = item['name'] ?? 'Item sem nome';
+    final String itemDescription = item['description'] ?? 'Descrição não disponível';
+    final double itemPrice = item['price']?.toDouble() ?? 0.0;
+    final String? imagePath = item['imagePath'];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: GestureDetector(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ProductDetailScreen(
+                product: item,
+                appColors: appColors,
               ),
             ),
-            const SizedBox(width: 16),
+          );
+        },
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(right: 12.0),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: imagePath != null
+                    ? Image.asset(
+                        imagePath,
+                        width: 80,
+                        height: 80,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            width: 80,
+                            height: 80,
+                            color: appColors.borderColor,
+                            child: Icon(Icons.room_service, color: appColors.secondaryText),
+                          );
+                        },
+                      )
+                    : Container(
+                        width: 80,
+                        height: 80,
+                        color: appColors.borderColor,
+                        child: Icon(Icons.room_service, color: appColors.secondaryText),
+                      ),
+              ),
+            ),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    item['title'],
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: appColors.primaryText,
-                          fontWeight: FontWeight.bold,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          itemName,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: appColors.primaryText,
+                          ),
                         ),
+                      ),
+                      Text(
+                        'R\$ ${itemPrice.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: appColors.primary,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    item['description'],
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: appColors.secondaryText,
-                        ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'R\$ ${item['price'].toStringAsFixed(2)}',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: appColors.primary,
-                          fontWeight: FontWeight.w600,
-                        ),
+                    itemDescription,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: appColors.secondaryText,
+                    ),
                   ),
                 ],
               ),

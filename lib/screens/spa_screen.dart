@@ -98,7 +98,6 @@ class _SpaScreenState extends State<SpaScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // REMOVIDO: A parte com o título "Nossos Serviços" foi removida.
           ListView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -124,6 +123,9 @@ class _SpaScreenState extends State<SpaScreen> {
               serviceDescription: service['description'],
               imagePath: service['imagePath'],
               appColors: widget.appColors,
+              // CORRIGIDO: Passa os novos parâmetros para a ScheduleScreen
+              tenantConfig: widget.tenantConfig,
+              roomServiceMenu: [], // Passamos uma lista vazia, pois não é um restaurante.
             ),
           ),
         );

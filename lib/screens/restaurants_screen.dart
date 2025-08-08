@@ -8,11 +8,13 @@ import 'menu_screen.dart';
 class RestaurantsScreen extends StatefulWidget {
   final Map<String, dynamic> tenantConfig;
   final AppThemeData appColors;
+  final List<Map<String, dynamic>> roomServiceMenu;
 
   const RestaurantsScreen({
     super.key,
     required this.tenantConfig,
     required this.appColors,
+    required this.roomServiceMenu,
   });
 
   @override
@@ -115,6 +117,8 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
               restaurantImagePath: restaurant['imagePath'],
               menu: List<Map<String, dynamic>>.from(restaurant['menu']),
               appColors: widget.appColors,
+              tenantConfig: widget.tenantConfig,
+              roomServiceMenu: widget.roomServiceMenu,
             ),
           ),
         );

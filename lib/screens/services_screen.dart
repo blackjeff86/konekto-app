@@ -6,12 +6,11 @@ import '../widgets/custom_header.dart';
 import '../widgets/image_banner.dart';
 import 'spa_screen.dart';
 import 'restaurants_screen.dart';
-import 'room_service_screen.dart'; // IMPORTANTE: Importe a tela de Room Service
+import 'room_service_screen.dart';
 
 class ServicesScreen extends StatefulWidget {
   final Map<String, dynamic> tenantConfig;
   final AppThemeData appColors;
-  // NOVO: Adicionado o menu do Room Service como parâmetro
   final List<Map<String, dynamic>> roomServiceMenu;
 
   const ServicesScreen({
@@ -34,7 +33,6 @@ class _ServicesScreenState extends State<ServicesScreen> {
     _precacheAllImagesFromJsons();
   }
 
-  // CORREÇÃO: Adicionado o ignore para o aviso de BuildContext
   // ignore: use_build_context_synchronously
   Future<void> _precacheAllImagesFromJsons() async {
     if (_isPrecaching) return;
@@ -66,17 +64,18 @@ class _ServicesScreenState extends State<ServicesScreen> {
     _isPrecaching = false;
   }
 
+  // CORRIGIDO: Esta função agora espera que o spa.json seja uma lista diretamente
   Future<List<String>> _getImagePathsFromSpaJson() async {
     try {
       final String response = await rootBundle.loadString(
-          'assets/tenants/konekto_app_default/spa.json');
-      // CORREÇÃO: O JSON do spa é uma lista, não um mapa.
-      final List<dynamic> data = json.decode(response);
+          widget.tenantConfig['spaJsonPath'] ??
+              'assets/tenants/konekto_app_default/spa.json');
+      final List<dynamic> data = json.decode(response); // Decodifica como uma Lista
       List<String> paths = [];
-      for (var item in data) {
-          if (item.containsKey('imagePath')) {
-              paths.add(item['imagePath']);
-          }
+      for (var item in data) { // Itera diretamente sobre a lista
+        if (item is Map<String, dynamic> && item.containsKey('imagePath')) {
+          paths.add(item['imagePath']);
+        }
       }
       return paths;
     } catch (e) {
@@ -89,7 +88,8 @@ class _ServicesScreenState extends State<ServicesScreen> {
   Future<List<String>> _getImagePathsFromRestaurantsJson() async {
     try {
       final String response = await rootBundle.loadString(
-          'assets/tenants/konekto_app_default/restaurants_data.json');
+          widget.tenantConfig['restaurantsJsonPath'] ??
+              'assets/tenants/konekto_app_default/restaurants_data.json');
       final Map<String, dynamic> data = json.decode(response);
       List<String> paths = [];
       for (var restaurant in data['restaurants']) {
@@ -198,6 +198,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
                   builder: (context) => RestaurantsScreen(
                     tenantConfig: widget.tenantConfig,
                     appColors: widget.appColors,
+                    roomServiceMenu: widget.roomServiceMenu,
                   ),
                 ),
               );

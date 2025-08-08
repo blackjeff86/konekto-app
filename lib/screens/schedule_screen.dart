@@ -4,12 +4,15 @@ import '../utils/app_theme_data.dart';
 import '../widgets/custom_header.dart';
 import '../widgets/image_banner.dart';
 import '../widgets/bottom_buttons.dart';
+import '../widgets/custom_dialog.dart';
 
 class ScheduleScreen extends StatefulWidget {
   final String serviceTitle;
   final String serviceDescription;
   final String imagePath;
   final AppThemeData appColors;
+  final Map<String, dynamic> tenantConfig;
+  final List<Map<String, dynamic>> roomServiceMenu;
 
   const ScheduleScreen({
     super.key,
@@ -17,6 +20,8 @@ class ScheduleScreen extends StatefulWidget {
     required this.serviceDescription,
     required this.imagePath,
     required this.appColors,
+    required this.tenantConfig,
+    required this.roomServiceMenu,
   });
 
   @override
@@ -82,7 +87,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             decoration: BoxDecoration(
               color: isSelected
                   ? widget.appColors.primary
-                  : (isToday ? widget.appColors.accent.withOpacity(0.2) : widget.appColors.background),
+                  : (isToday ? widget.appColors.accent.withAlpha(51) : widget.appColors.background),
               shape: BoxShape.circle,
             ),
             child: Center(
@@ -116,7 +121,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             },
           ),
           trailing: const SizedBox.shrink(),
-          appColors: widget.appColors, // ADICIONADO: Passa a paleta de cores para o CustomHeader
+          appColors: widget.appColors,
         ),
       ),
       body: ListView(
@@ -125,7 +130,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             imagePath: widget.imagePath,
             height: 250,
             gradientText: widget.serviceTitle,
-            appColors: widget.appColors, // ADICIONADO: Passa a paleta de cores para o ImageBanner
+            appColors: widget.appColors,
           ),
           _buildScheduleContent(context),
           const SizedBox(height: 100),
@@ -133,32 +138,20 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       ),
       bottomNavigationBar: BottomButtons(
         text: 'Agendar agora',
-        appColors: widget.appColors, // ADICIONADO: Passa a paleta de cores para o BottomButtons
+        appColors: widget.appColors,
         onPressed: () {
           if (_selectedDay != null && _selectedTime != null) {
-            showDialog(
+            showCustomDialog(
               context: context,
-              builder: (BuildContext context) {
-                return AlertDialog(
-                  backgroundColor: widget.appColors.background,
-                  title: Text(
-                    'Agendamento Confirmado!',
-                    style: TextStyle(color: widget.appColors.primaryText),
-                  ),
-                  content: Text(
-                    'Seu agendamento para ${DateFormat('dd/MM/yyyy', 'pt_BR').format(_selectedDay!)} às $_selectedTime foi realizado com sucesso. Aguardamos você!',
-                    style: TextStyle(color: widget.appColors.secondaryText),
-                  ),
-                  actions: [
-                    TextButton(
-                      child: Text('OK', style: TextStyle(color: widget.appColors.primary)),
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        Navigator.of(context).pop();
-                      },
-                    ),
-                  ],
-                );
+              title: 'Agendamento Confirmado!',
+              message: 'Seu agendamento para ${DateFormat('dd/MM/yyyy', 'pt_BR').format(_selectedDay!)} às $_selectedTime foi realizado com sucesso. Aguardamos você!',
+              appColors: widget.appColors,
+              onOkPressed: () {
+                // Fechar o diálogo de confirmação.
+                Navigator.of(context).pop();
+
+                // Voltar para a tela anterior (SpaScreen ou MenuScreen).
+                Navigator.of(context).pop();
               },
             );
           } else {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../utils/app_theme_data.dart';
+import '../widgets/custom_dialog.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final Map<String, dynamic> product;
@@ -35,9 +36,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final String imagePath = widget.product['imagePath'] ?? 'assets/placeholder.jpg';
-    final String title = widget.product['title'];
-    final String description = widget.product['description'];
+    final String title = widget.product['name'] ?? 'Item sem nome';
+    final String description = widget.product['description'] ?? 'Descrição não disponível';
     final double price = widget.product['price']?.toDouble() ?? 0.0;
+    final double totalPrice = price * _quantity; // Cálculo do preço total
 
     return Scaffold(
       backgroundColor: widget.appColors.background,
@@ -47,12 +49,27 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           children: [
             Stack(
               children: [
-                Image.asset(
-                  imagePath,
-                  fit: BoxFit.cover,
-                  height: 300,
-                  width: double.infinity,
-                ),
+                imagePath.isNotEmpty
+                    ? Image.asset(
+                        imagePath,
+                        fit: BoxFit.cover,
+                        height: 300,
+                        width: double.infinity,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            height: 300,
+                            width: double.infinity,
+                            color: widget.appColors.borderColor,
+                            child: Icon(Icons.room_service, color: widget.appColors.secondaryText, size: 50),
+                          );
+                        },
+                      )
+                    : Container(
+                        height: 300,
+                        width: double.infinity,
+                        color: widget.appColors.borderColor,
+                        child: Icon(Icons.room_service, color: widget.appColors.secondaryText, size: 50),
+                      ),
                 Positioned(
                   top: 40,
                   left: 16,
@@ -77,10 +94,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'R\$ ${price.toStringAsFixed(2)}',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          color: widget.appColors.primary,
-                          fontWeight: FontWeight.w700,
+                    'R\$ ${price.toStringAsFixed(2)} por unidade',
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: widget.appColors.secondaryText,
                         ),
                   ),
                   const SizedBox(height: 16),
@@ -95,7 +111,23 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       _buildQuantitySelector(),
-                      _buildAddToCartButton(context),
+                      _buildAddToCartButton(context, totalPrice),
+                    ],
+                  ),
+                  // O espaçamento foi aumentado para 24
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Text(
+                        'Total: R\$ ${totalPrice.toStringAsFixed(2)}',
+                        // O tamanho da fonte foi ajustado para um valor fixo um pouco menor
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontSize: 18,
+                              color: widget.appColors.primary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
                     ],
                   ),
                 ],
@@ -111,43 +143,56 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: widget.appColors.accent, // CORRIGIDO: Usando 'accent'
+        color: widget.appColors.accent,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          GestureDetector(
-            onTap: _decrementQuantity,
-            child: Icon(Icons.remove, color: widget.appColors.primaryText),
+          SizedBox(
+            width: 32,
+            child: IconButton(
+              icon: Icon(Icons.keyboard_arrow_down, color: widget.appColors.buttonText),
+              onPressed: _decrementQuantity,
+              padding: EdgeInsets.zero,
+            ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
             child: Text(
               _quantity.toString(),
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: widget.appColors.primaryText,
+                    color: widget.appColors.buttonText,
                     fontWeight: FontWeight.bold,
                   ),
             ),
           ),
-          GestureDetector(
-            onTap: _incrementQuantity,
-            child: Icon(Icons.add, color: widget.appColors.primaryText),
+          SizedBox(
+            width: 32,
+            child: IconButton(
+              icon: Icon(Icons.keyboard_arrow_up, color: widget.appColors.buttonText),
+              onPressed: _incrementQuantity,
+              padding: EdgeInsets.zero,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildAddToCartButton(BuildContext context) {
-    return ElevatedButton(
+  Widget _buildAddToCartButton(BuildContext context, double totalPrice) {
+    return ElevatedButton.icon(
       onPressed: () {
-        // TODO: Implementar a lógica para adicionar ao carrinho
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('$_quantity x "${widget.product['title']}" adicionado(s) ao carrinho.'),
-            backgroundColor: widget.appColors.primary,
-          ),
+        showCustomDialog(
+          context: context,
+          title: 'Pedido para Quarto Confirmado!',
+          message: '$_quantity x "${widget.product['name']}" (R\$ ${totalPrice.toStringAsFixed(2)}) será adicionado ao seu carrinho',
+          appColors: widget.appColors,
+          okButtonText: 'Confirmar Pedido',
+          onOkPressed: () {
+            Navigator.of(context).pop();
+            Navigator.of(context).pop();
+          },
         );
       },
       style: ElevatedButton.styleFrom(
@@ -157,10 +202,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         ),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       ),
-      child: Text(
-        'Adicionar ao Carrinho',
+      icon: Icon(Icons.shopping_cart, color: widget.appColors.buttonText),
+      label: Text(
+        'Adicionar',
         style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: widget.appColors.buttonText, // CORRIGIDO: Usando 'buttonText'
+              color: widget.appColors.buttonText,
               fontWeight: FontWeight.bold,
             ),
       ),

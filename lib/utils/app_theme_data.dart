@@ -37,9 +37,9 @@ class AppThemeData {
       borderColor: Color(int.parse(json['borderColor'])),
       success: Color(int.parse(json['success'])),
       warning: Color(int.parse(json['warning'])),
-      error: Color(int.parse(json['error'])),
-      shadowColor: const Color.fromRGBO(0, 0, 0, 0.1),
-      buttonText: Color(int.parse(json['buttonText'])), // Adicionado ao fromJson
-    );
-  }
+      error: Color(json['error'] != null ? int.parse(json['error']) : 0xFF000000),
+    shadowColor: const Color.fromRGBO(0, 0, 0, 0.1),
+    buttonText: Color(json['buttonText'] != null ? int.parse(json['buttonText']) : 0xFFFFFFFF),
+  );
+}
 }

@@ -307,13 +307,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 'Serviços',
                 Icons.room_service,
                 onTap: () {
+                  // CORREÇÃO: Passando o 'roomServiceMenu' para a ServicesScreen
                   Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => ServicesScreen(
                         tenantConfig: widget.tenantConfig,
                         appColors: widget.appColors,
-                        roomServiceMenu: _roomServiceMenu, // CORREÇÃO: Passando o menu
+                        roomServiceMenu: _roomServiceMenu,
                       ),
                     ),
                   );

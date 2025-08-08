@@ -4,7 +4,6 @@ import '../widgets/custom_header.dart';
 import '../widgets/image_banner.dart';
 import '../widgets/bottom_buttons.dart';
 import 'schedule_screen.dart';
-import 'product_detail_screen.dart'; // Importa a tela de detalhes do produto
 
 class MenuScreen extends StatelessWidget {
   final String restaurantTitle;
@@ -12,6 +11,9 @@ class MenuScreen extends StatelessWidget {
   final String restaurantImagePath;
   final List<Map<String, dynamic>> menu;
   final AppThemeData appColors;
+  // NOVO: Adicionados os parâmetros necessários para a ScheduleScreen
+  final Map<String, dynamic> tenantConfig;
+  final List<Map<String, dynamic>> roomServiceMenu;
 
   const MenuScreen({
     super.key,
@@ -20,6 +22,9 @@ class MenuScreen extends StatelessWidget {
     required this.restaurantImagePath,
     required this.menu,
     required this.appColors,
+    // NOVO: Adicionados os parâmetros no construtor
+    required this.tenantConfig,
+    required this.roomServiceMenu,
   });
 
   @override
@@ -62,7 +67,6 @@ class MenuScreen extends StatelessWidget {
                         ),
                   ),
                   const SizedBox(height: 24),
-                  // CORRIGIDO: Garante que 'menu' é uma lista antes de mapear
                   if (menu.isNotEmpty)
                     ...menu.map((section) => _buildMenuSection(context, section)),
                   const SizedBox(height: 100),
@@ -73,7 +77,7 @@ class MenuScreen extends StatelessWidget {
         ),
       ),
       bottomNavigationBar: BottomButtons(
-        text: 'Agendar agora',
+        text: 'Reservar Mesa',
         onPressed: () {
           Navigator.push(
             context,
@@ -83,6 +87,8 @@ class MenuScreen extends StatelessWidget {
                 serviceDescription: restaurantDescription,
                 imagePath: restaurantImagePath,
                 appColors: appColors,
+                tenantConfig: tenantConfig,
+                roomServiceMenu: roomServiceMenu,
               ),
             ),
           );
@@ -93,7 +99,6 @@ class MenuScreen extends StatelessWidget {
   }
 
   Widget _buildMenuSection(BuildContext context, Map<String, dynamic> section) {
-    // CORRIGIDO: Verifica se 'title' e 'items' existem e são do tipo correto
     final String sectionTitle = section['title'] ?? 'Seção sem Título';
     final List<dynamic> items = section['items'] ?? [];
 
@@ -108,7 +113,7 @@ class MenuScreen extends StatelessWidget {
               ),
         ),
         const SizedBox(height: 12),
-        ...items.map<Widget>((item) => _buildMenuItem(context, item)).toList(),
+        ...items.map<Widget>((item) => _buildMenuItem(context, item)),
         const SizedBox(height: 24),
       ],
     );
@@ -122,82 +127,68 @@ class MenuScreen extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: GestureDetector(
-        onTap: () {
-          // CORRIGIDO: Navegação para a tela de detalhes do produto
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ProductDetailScreen(
-                product: item,
-                appColors: appColors,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(right: 12.0),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.asset(
+                imagePath,
+                width: 80,
+                height: 80,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    width: 80,
+                    height: 80,
+                    color: appColors.borderColor,
+                    child: Icon(Icons.restaurant_menu, color: appColors.secondaryText),
+                  );
+                },
               ),
             ),
-          );
-        },
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(right: 12.0),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.asset(
-                  imagePath,
-                  width: 80,
-                  height: 80,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      width: 80,
-                      height: 80,
-                      color: appColors.borderColor,
-                      child: Icon(Icons.restaurant_menu, color: appColors.secondaryText),
-                    );
-                  },
-                ),
-              ),
-            ),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          itemName,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            color: appColors.primaryText,
-                          ),
-                        ),
-                      ),
-                      Text(
-                        'R\$ ${itemPrice.toStringAsFixed(2)}',
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        itemName,
                         style: TextStyle(
                           fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: appColors.primary,
+                          fontWeight: FontWeight.w500,
+                          color: appColors.primaryText,
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    itemDescription,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: appColors.secondaryText,
                     ),
+                    Text(
+                      'R\$ ${itemPrice.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: appColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  itemDescription,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: appColors.secondaryText,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

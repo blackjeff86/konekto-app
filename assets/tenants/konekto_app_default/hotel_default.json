@@ -20,7 +20,7 @@
   },
   "roomServiceConfig": {
     "jsonPath": "assets/tenants/konekto_app_default/room_service.json",
-    "bannerPath": "assets/tenants/konekto_app_default/images/banners/room_service_banner.png",
+    "bannerPath": "assets/tenants/konekto_app_default/images/banners/room_service_banner.jpg",
     "description": "Desfrute de refeições e bebidas no conforto do seu quarto, disponíveis 24 horas."
   }
 }
