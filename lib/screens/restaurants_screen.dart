@@ -1,3 +1,5 @@
+// lib/screens/restaurants_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'dart:convert';
@@ -8,13 +10,11 @@ import 'menu_screen.dart';
 class RestaurantsScreen extends StatefulWidget {
   final Map<String, dynamic> tenantConfig;
   final AppThemeData appColors;
-  final List<Map<String, dynamic>> roomServiceMenu;
-
+  
   const RestaurantsScreen({
     super.key,
     required this.tenantConfig,
     required this.appColors,
-    required this.roomServiceMenu,
   });
 
   @override
@@ -106,6 +106,17 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
 
   Widget _buildRestaurantCard(
       BuildContext context, Map<String, dynamic> restaurant) {
+    // Extrai o menu do serviço de quarto aqui, do tenantConfig
+    final Map<String, dynamic> roomServiceConfig = widget.tenantConfig['roomServiceConfig'] ?? {};
+    final List<dynamic> menuList = roomServiceConfig['menu'] ?? [];
+    final List<Map<String, dynamic>> roomServiceMenu = menuList.map<Map<String, dynamic>>((item) {
+      if (item is Map<String, dynamic>) {
+        return item;
+      } else {
+        return {};
+      }
+    }).toList();
+
     return InkWell(
       onTap: () {
         Navigator.push(
@@ -118,7 +129,7 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
               menu: List<Map<String, dynamic>>.from(restaurant['menu']),
               appColors: widget.appColors,
               tenantConfig: widget.tenantConfig,
-              roomServiceMenu: widget.roomServiceMenu,
+              roomServiceMenu: roomServiceMenu, // <-- Agora o parâmetro é passado
             ),
           ),
         );

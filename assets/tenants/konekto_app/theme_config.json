@@ -1,0 +1,18 @@
+{
+  "primary": "0xFF0F172A",
+  "onPrimary": "0xFFFFFFFF",
+  "accent": "0xFF1E293B",
+  "primaryText": "0xFF111416",
+  "secondaryText": "0xFF637287",
+  "background": "0xFFF8FAFC",
+  "borderColor": "0xFFE5E8EA",
+  "success": "0xFF10B981",
+  "warning": "0xFFF59E0B",
+  "error": "0xFFEF4444",
+  "onError": "0xFFFFFFFF",
+  "shadowColor": "0x1A000000",
+  "buttonText": "0xFFFFFFFF",
+  "splashScreenIconPath": "assets/images/icons/logo_konekto.png",
+  "cardBackground": "0xFFFFFFFF",
+  "buttonBackground": "0xFF0F172A"
+}

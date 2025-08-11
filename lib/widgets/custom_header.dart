@@ -1,22 +1,45 @@
+// lib/widgets/custom_header.dart
+
 import 'package:flutter/material.dart';
-import '../utils/app_theme_data.dart'; // CORRIGIDO: Usa a nova classe de cores
+import '../utils/app_theme_data.dart';
 
 class CustomHeader extends StatelessWidget {
   final String title;
+  final double titleFontSize;
+  final String headerTitleType;
+  final String logoPath;
   final Widget? leading;
   final Widget? trailing;
-  final AppThemeData appColors; // ADICIONADO: Parâmetro para as cores dinâmicas
+  final AppThemeData appColors;
 
   const CustomHeader({
     super.key,
     required this.title,
-    required this.appColors, // ADICIONADO: ao construtor
+    required this.appColors,
+    this.titleFontSize = 24.0,
+    this.headerTitleType = 'text',
+    this.logoPath = '',
     this.leading,
     this.trailing,
   });
 
   @override
   Widget build(BuildContext context) {
+    final Widget titleWidget = headerTitleType == 'image' && logoPath.isNotEmpty
+        ? Image.asset(
+            logoPath,
+            height: titleFontSize,
+          )
+        : Text(
+            title,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: appColors.primary,
+                  fontWeight: FontWeight.w700,
+                  fontSize: titleFontSize,
+                ),
+          );
+
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 60, 16, 0),
       child: Row(
@@ -27,15 +50,7 @@ class CustomHeader extends StatelessWidget {
             child: leading ?? const SizedBox.shrink(),
           ),
           Expanded(
-            child: Text(
-              title,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: appColors.primaryText, // ALTERADO: Usa cor dinâmica
-                    fontWeight: FontWeight.w700,
-                    fontSize: 20,
-                  ),
-            ),
+            child: titleWidget,
           ),
           SizedBox(
             width: 48,

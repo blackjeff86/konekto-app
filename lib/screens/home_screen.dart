@@ -1,11 +1,20 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
-import 'dart:convert';
+
 import 'services_screen.dart';
 import 'room_service_screen.dart';
+import 'profile_screen.dart';
+import 'map_screen.dart';
+import 'history_screen.dart';
+import 'home_content_screen.dart';
 import '../widgets/custom_header.dart';
-import '../widgets/image_banner.dart';
 import '../utils/app_theme_data.dart';
+import 'events_screen.dart';
+import 'restaurants_screen.dart';
+import 'spa_screen.dart';
+import 'tours_screen.dart';
+import 'reservations_screen.dart';
+import 'notifications_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final Map<String, dynamic> tenantConfig;
@@ -22,410 +31,313 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  List<Map<String, dynamic>> _roomServiceMenu = [];
-  bool _isLoading = true;
-  bool _isPrecaching = false;
+  int _selectedIndex = 0;
+  
+  late List<String> _bannerImages;
+  int _currentImageIndex = 0;
+  Timer? _timer;
+
+  late final String _servicesBannerTitle;
+  late final String _servicesBannerPath;
+
+  final String _guestName = "Lucas";
+  final String _guestEmail = "lucas.silva@email.com";
+  final String _guestRoom = "305";
+
+  bool _hasNewNotifications = true; // Variável de estado para o ponto vermelho
 
   @override
   void initState() {
     super.initState();
-    _loadRoomServiceData();
+
+    _servicesBannerPath = widget.tenantConfig['bannerImages']['servicesBanner'] ?? '';
+    _servicesBannerTitle = widget.tenantConfig['uiConfig']?['servicesScreen']?['title'] ?? 'Nossos Serviços';
+
+    _loadBannerImages();
+    _startImageTimer();
   }
 
-  Future<void> _loadRoomServiceData() async {
-    try {
-      final String response = await rootBundle.loadString(
-          widget.tenantConfig['roomServiceConfig']['jsonPath'] ??
-              'assets/tenants/konekto_app_default/room_service.json');
-      final List<dynamic> data = json.decode(response);
-
-      if (!mounted) return;
-
-      setState(() {
-        _roomServiceMenu = List<Map<String, dynamic>>.from(data);
-        _isLoading = false;
-      });
-      // ignore: avoid_print
-      print('Dados do Room Service carregados com sucesso. Itens: ${_roomServiceMenu.length}');
-    } catch (e) {
-      // ignore: avoid_print
-      print("Erro ao carregar dados do Room Service: $e");
-      // ignore: avoid_print
-      print('Verifique se o arquivo JSON está no caminho correto e sem erros de sintaxe.');
-
-      if (!mounted) return;
-
-      setState(() {
-        _isLoading = false;
-        _roomServiceMenu = [];
-      });
+  void _loadBannerImages() {
+    final dynamic bannerImagesConfig = widget.tenantConfig['bannerImages']['homeBannerList'];
+    if (bannerImagesConfig is List<dynamic> && bannerImagesConfig.isNotEmpty) {
+      _bannerImages = List<String>.from(bannerImagesConfig);
+    } else {
+      final String? singleBannerPath = widget.tenantConfig['bannerImages']['homeBanner'];
+      if (singleBannerPath != null) {
+        _bannerImages = [singleBannerPath];
+      } else {
+        _bannerImages = [];
+      }
     }
+  }
+
+  void _startImageTimer() {
+    _timer = Timer.periodic(const Duration(seconds: 60), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      setState(() {
+        _currentImageIndex = (_currentImageIndex + 1) % _bannerImages.length;
+      });
+    });
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _precacheAllImagesFromJsons();
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
   }
 
-  // ignore: use_build_context_synchronously
-  Future<void> _precacheAllImagesFromJsons() async {
-    if (_isPrecaching) return;
-    _isPrecaching = true;
-    
-    List<String> allImagePaths = [];
-
-    try {
-      final spaPaths = await _getImagePathsFromSpaJson();
-      final restaurantPaths = await _getImagePathsFromRestaurantsJson();
-      final roomServicePaths = await _getImagePathsFromRoomServiceJson();
-
-      allImagePaths = [
-        ...spaPaths,
-        ...restaurantPaths,
-        ...roomServicePaths,
-        widget.tenantConfig['bannerImages']['homeBanner'],
-        widget.tenantConfig['bannerImages']['servicesBanner'],
-        widget.tenantConfig['roomServiceConfig']['bannerPath'],
-      ];
-    } catch (e) {
-      // ignore: avoid_print
-      print("Erro ao coletar caminhos de imagens para pré-carregamento: $e");
-    }
-
-    if (mounted) {
-      for (var path in allImagePaths) {
-        if (path.isNotEmpty) {
-          precacheImage(AssetImage(path), context);
-        }
-      }
-      // ignore: avoid_print
-      print('Imagens pré-carregadas com sucesso.');
-    }
-    
-    _isPrecaching = false;
+  void _navigateToNotificationsScreen() {
+    setState(() {
+      _hasNewNotifications = false;
+    });
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => NotificationsScreen(
+          appColors: widget.appColors,
+          tenantConfig: widget.tenantConfig,
+        ),
+      ),
+    );
   }
 
-  Future<List<String>> _getImagePathsFromSpaJson() async {
-    try {
-      final String response = await rootBundle.loadString(
-          'assets/tenants/konekto_app_default/spa.json');
-      // CORREÇÃO: O JSON do spa é uma lista, não um mapa.
-      final List<dynamic> data = json.decode(response);
-      List<String> paths = [];
-      for (var item in data) {
-          if (item.containsKey('imagePath')) {
-              paths.add(item['imagePath']);
+  void _handleGridButtonAction(String action) {
+    final service = (widget.tenantConfig['servicesList'] as List<dynamic>?)?.firstWhere(
+      (s) => s['action'] == action,
+      orElse: () => null,
+    );
+
+    if (service == null && action != 'map' && action != 'history' && action != 'reservations' && action != 'restaurants' && action != 'spa' && action != 'events' && action != 'room_service' && action != 'tours') {
+      print('Serviço não encontrado para a ação: $action');
+      return;
+    }
+
+    switch (action) {
+      case 'reservations':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ReservationsScreen(
+              tenantConfig: widget.tenantConfig,
+              appColors: widget.appColors,
+            ),
+          ),
+        );
+        break;
+      case 'room_service':
+        final Map<String, dynamic> roomServiceConfig = widget.tenantConfig['roomServiceConfig'] ?? {};
+        final List<dynamic> menuList = roomServiceConfig['menu'] ?? [];
+        final List<Map<String, dynamic>> roomServiceMenu = menuList.map<Map<String, dynamic>>((item) {
+          if (item is Map<String, dynamic>) {
+            return item;
+          } else {
+            return {};
           }
-      }
-      return paths;
-    } catch (e) {
-      // ignore: avoid_print
-      print("Erro ao carregar imagens do SPA: $e");
-      return [];
+        }).toList();
+
+        if (roomServiceMenu.isNotEmpty) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => RoomServiceScreen(
+                serviceTitle: service!['title'] ?? 'Room Service',
+                serviceDescription: roomServiceConfig['description'] ?? '',
+                serviceImagePath: roomServiceConfig['bannerPath'] ?? '',
+                menu: roomServiceMenu,
+                appColors: widget.appColors,
+              ),
+            ),
+          );
+        }
+        break;
+      case 'restaurants':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => RestaurantsScreen(
+              tenantConfig: widget.tenantConfig,
+              appColors: widget.appColors,
+            ),
+          ),
+        );
+        break;
+      case 'spa':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => SpaScreen(
+              tenantConfig: widget.tenantConfig,
+              appColors: widget.appColors,
+            ),
+          ),
+        );
+        break;
+      case 'events':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => EventsScreen(
+              tenantConfig: widget.tenantConfig,
+              appColors: widget.appColors,
+            ),
+          ),
+        );
+        break;
+      case 'tours':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ToursScreen(
+              tenantConfig: widget.tenantConfig,
+              appColors: widget.appColors,
+            ),
+          ),
+        );
+        break;
+      case 'map':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => MapScreen(
+              tenantConfig: widget.tenantConfig,
+              appColors: widget.appColors,
+            ),
+          ),
+        );
+        break;
+      case 'history':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => HistoryScreen(appColors: widget.appColors),
+          ),
+        );
+        break;
+      default:
+        print('Ação não reconhecida: $action');
     }
   }
 
-  Future<List<String>> _getImagePathsFromRestaurantsJson() async {
-    try {
-      final String response = await rootBundle.loadString(
-          'assets/tenants/konekto_app_default/restaurants_data.json');
-      final Map<String, dynamic> data = json.decode(response);
-      List<String> paths = [];
-      for (var restaurant in data['restaurants']) {
-        paths.add(restaurant['imagePath']);
-        for (var section in restaurant['menu']) {
-          for (var item in section['items']) {
-            if (item.containsKey('imagePath')) {
-              paths.add(item['imagePath']);
-            }
-          }
-        }
-      }
-      return paths;
-    } catch (e) {
-      // ignore: avoid_print
-      print("Erro ao carregar imagens de Restaurantes: $e");
-      return [];
+  void _onBottomBarItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
+  Widget _buildCurrentBody() {
+    switch (_selectedIndex) {
+      case 0:
+        return HomeContentScreen(
+          tenantConfig: widget.tenantConfig,
+          appColors: widget.appColors,
+          onGridButtonTap: _handleGridButtonAction,
+          guestName: _guestName,
+          guestEmail: _guestEmail,
+          guestRoom: _guestRoom,
+        );
+      case 1:
+        return ServicesScreen(
+          tenantConfig: widget.tenantConfig,
+          appColors: widget.appColors,
+          bannerTitle: _servicesBannerTitle,
+          bannerImagePath: _servicesBannerPath,
+        );
+      case 2:
+        return ReservationsScreen(
+          tenantConfig: widget.tenantConfig,
+          appColors: widget.appColors,
+        );
+      case 3:
+        return ProfileScreen(appColors: widget.appColors);
+      default:
+        return Center(
+          child: Text('Tela não encontrada!', style: TextStyle(color: widget.appColors.primaryText)),
+        );
     }
   }
 
-  Future<List<String>> _getImagePathsFromRoomServiceJson() async {
-    try {
-      final String response = await rootBundle.loadString(
-          'assets/tenants/konekto_app_default/room_service.json');
-      final List<dynamic> data = json.decode(response);
-      List<String> paths = [];
-      for (var section in data) {
-        for (var item in section['items']) {
-          if (item.containsKey('imagePath')) {
-            paths.add(item['imagePath']);
-          }
-        }
-      }
-      return paths;
-    } catch (e) {
-      // ignore: avoid_print
-      print("Erro ao carregar imagens do Room Service: $e");
-      return [];
+  IconData _getIconData(String iconName) {
+    switch (iconName) {
+      case 'home_outlined':
+        return Icons.home_outlined;
+      case 'room_service_outlined':
+        return Icons.room_service_outlined;
+      case 'calendar_today_outlined':
+        return Icons.calendar_today_outlined;
+      case 'person_outlined':
+        return Icons.person_outlined;
+      default:
+        return Icons.error;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return Scaffold(
-        backgroundColor: widget.appColors.background,
-        body: Center(
-          child: CircularProgressIndicator(
-            color: widget.appColors.primary,
-          ),
-        ),
-      );
-    }
-    
+    final List<dynamic> bottomBarItems = widget.tenantConfig['uiConfig']['homeScreen']['bottomBarItems'];
+
     return Scaffold(
       backgroundColor: widget.appColors.background,
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            CustomHeader(
-              title: widget.tenantConfig['name'] ?? 'Konekto App',
-              leading: const SizedBox(width: 48),
-              trailing: IconButton(
-                icon: Icon(Icons.settings, color: widget.appColors.primaryText),
-                onPressed: () {
-                  // Ação para o botão de configurações
-                },
-              ),
-              appColors: widget.appColors,
-            ),
-            ImageBanner(
-              imagePath: widget.tenantConfig['bannerImages']['homeBanner'],
-              height: 250,
-              appColors: widget.appColors,
-            ),
-            _buildWelcomeInfo(context),
-            _buildAccessInfo(context),
-            _buildNavigationGrid(context),
-          ],
-        ),
-      ),
-      bottomNavigationBar: _buildBottomNavigationBar(context),
-    );
-  }
-
-  Widget _buildWelcomeInfo(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Bem-vindo, Lucas!',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: widget.appColors.primaryText,
-                  fontWeight: FontWeight.w700,
-                ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Check-in realizado com sucesso! Seu quarto é o 305.',
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: widget.appColors.primaryText,
-                ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAccessInfo(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Dados de acesso',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: widget.appColors.primaryText,
-                  fontWeight: FontWeight.w700,
-                ),
-          ),
-          const SizedBox(height: 16),
-          _buildInfoRow(context, 'Wi-fi', 'Beach Park Wi-Fi'),
-          const SizedBox(height: 12),
-          _buildInfoRow(context, 'Login', 'lucas.silva@email.com'),
-          const SizedBox(height: 12),
-          _buildInfoRow(context, 'Senha', '123456'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(BuildContext context, String title, String subtitle) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Text(
-          title,
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: widget.appColors.primaryText,
-                fontWeight: FontWeight.w600,
-              ),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          '|',
-          style: TextStyle(
-            color: widget.appColors.secondaryText,
-            fontSize: 16,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          subtitle,
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: widget.appColors.primaryText,
-              ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildNavigationGrid(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        children: [
-          Row(
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(60.0),
+        child: CustomHeader(
+          title: widget.tenantConfig['name'] ?? 'Konekto App',
+          leading: const SizedBox.shrink(),
+          trailing: Stack(
+            alignment: Alignment.center,
             children: [
-              _buildNavigationButton(
-                context,
-                'Serviços',
-                Icons.room_service,
-                onTap: () {
-                  // CORREÇÃO: Passando o 'roomServiceMenu' para a ServicesScreen
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ServicesScreen(
-                        tenantConfig: widget.tenantConfig,
-                        appColors: widget.appColors,
-                        roomServiceMenu: _roomServiceMenu,
-                      ),
+              IconButton(
+                icon: Icon(
+                  _hasNewNotifications ? Icons.notifications : Icons.notifications_outlined,
+                  color: _hasNewNotifications ? widget.appColors.primary : widget.appColors.secondaryText,
+                  size: 28,
+                ),
+                onPressed: _navigateToNotificationsScreen,
+              ),
+              if (_hasNewNotifications)
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
                     ),
-                  );
-                },
-              ),
-              const SizedBox(width: 12),
-              _buildNavigationButton(
-                context,
-                'Room Service',
-                Icons.restaurant_menu,
-                onTap: () {
-                  if (_roomServiceMenu.isNotEmpty) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => RoomServiceScreen(
-                          serviceTitle: 'Room Service',
-                          serviceDescription: widget.tenantConfig['roomServiceConfig']['description'],
-                          serviceImagePath: widget.tenantConfig['roomServiceConfig']['bannerPath'],
-                          menu: _roomServiceMenu,
-                          appColors: widget.appColors,
-                        ),
-                      ),
-                    );
-                  }
-                },
-              ),
+                  ),
+                ),
             ],
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              _buildNavigationButton(context, 'Perfil', Icons.person),
-              const SizedBox(width: 12),
-              _buildNavigationButton(context, 'Histórico', Icons.history),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavigationButton(
-      BuildContext context, String title, IconData icon,
-      {VoidCallback? onTap}) {
-    return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          height: 80,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: widget.appColors.background,
-            border: Border.all(color: widget.appColors.borderColor),
-            borderRadius: BorderRadius.circular(8),
-            boxShadow: [
-              BoxShadow(
-                color: widget.appColors.shadowColor,
-                spreadRadius: 1,
-                blurRadius: 5,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Icon(icon, size: 24, color: widget.appColors.primaryText),
-              const SizedBox(width: 12),
-              Text(
-                title,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: widget.appColors.primaryText,
-                      fontWeight: FontWeight.w700,
-                    ),
-              ),
-            ],
-          ),
+          appColors: widget.appColors,
         ),
       ),
+      body: Padding(
+        padding: const EdgeInsets.only(top: 16.0),
+        child: Center(
+          child: _buildCurrentBody(),
+        ),
+      ),
+      bottomNavigationBar: _buildBottomNavigationBar(bottomBarItems),
     );
   }
 
-  Widget _buildBottomNavigationBar(BuildContext context) {
+  Widget _buildBottomNavigationBar(List<dynamic> bottomBarItems) {
     return BottomNavigationBar(
       backgroundColor: widget.appColors.background,
       type: BottomNavigationBarType.fixed,
       selectedItemColor: widget.appColors.primary,
       unselectedItemColor: widget.appColors.secondaryText,
-      showSelectedLabels: false,
-      showUnselectedLabels: false,
-      items: const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.home),
-          label: 'Home',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.search),
-          label: 'Search',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.bookmark_border),
-          label: 'Bookmarks',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.person),
-          label: 'Profile',
-        ),
-      ],
-      onTap: (index) {
-        // TODO: Implementar a navegação entre as telas aqui
-      },
+      showSelectedLabels: true,
+      showUnselectedLabels: true,
+      items: bottomBarItems.map((item) => BottomNavigationBarItem(
+        icon: Icon(_getIconData(item['icon'])),
+        label: item['label'],
+      )).toList(),
+      currentIndex: _selectedIndex,
+      onTap: _onBottomBarItemTapped,
     );
   }
 }

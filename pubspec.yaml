@@ -1,108 +1,82 @@
 name: konekto_app
 description: "A new Flutter project."
-# A linha a seguir impede que o pacote seja publicado acidentalmente em
-# pub.dev usando `flutter pub publish`. Isso é preferível para pacotes privados.
-publish_to: 'none' # Remova esta linha se desejar publicar em pub.dev
-
-# O seguinte define o número de versão e de build para sua aplicação.
-# Um número de versão são três números separados por pontos, como 1.2.43
-# seguido por um número de build opcional separado por um +.
-# Ambos o nome da versão e o número de build podem ser sobrescritos no build do flutter
-# especificando --build-name e --build-number, respectivamente.
-# No Android, build-name é usado como versionName enquanto build-number é usado como versionCode.
-# Leia mais sobre o versionamento Android em https://developer.android.com/studio/publish/versioning
-# No iOS, build-name é usado como CFBundleShortVersionString enquanto build-number é usado como CFBundleVersion.
-# Leia mais sobre o versionamento iOS em
-# https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
-# No Windows, build-name é usado como as partes principal, secundária e de patch
-# das versões do produto e do arquivo, enquanto build-number é usado como o sufixo de build.
+publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.0.0 <4.0.0' # ESTA É A LINHA CRUCIAL PARA A RESTRIÇÃO DO SDK
+  sdk: '>=3.0.0 <4.0.0'
 
-# Dependencies especificam outros pacotes que seu pacote precisa para funcionar.
-# Para atualizar automaticamente as dependências do seu pacote para as versões mais recentes
-# considere executar `flutter pub upgrade --major-versions`. Alternativamente,
-# as dependências podem ser atualizadas manualmente alterando os números de versão abaixo para
-# a versão mais recente disponível em pub.dev. Para ver quais dependências têm versões mais recentes
-# disponíveis, execute `flutter pub outdated`.
 dependencies:
   flutter:
     sdk: flutter
-  # O seguinte adiciona a fonte Cupertino Icons à sua aplicação.
-  # Use com a classe CupertinoIcons para ícones no estilo iOS.
   cupertino_icons: ^1.0.8
-  # Verifique se a linha abaixo está presente:
-  table_calendar: ^3.0.0 # A versão pode variar
+  table_calendar: ^3.0.0
   intl: ^0.20.2
+  dotted_border: ^2.1.0
+  flutter_map: ^6.1.0
+  latlong2: ^0.9.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
-  # O pacote "flutter_lints" abaixo contém um conjunto de lints recomendados para
-  # encorajar boas práticas de codificação. O conjunto de lints fornecido pelo pacote é
-  # ativado no arquivo `analysis_options.yaml` localizado na raiz do seu
-  # pacote. Veja esse arquivo para informações sobre a desativação de lints específicos
-  # e a ativação de outros.
   flutter_lints: ^5.0.0
 
-# Para informações sobre a parte genérica Dart deste arquivo, veja a
-# seguinte página: https://dart.dev/tools/pub/pubspec
-
-# A seção a seguir é específica para pacotes Flutter.
-flutter:
-
-  # A linha a seguir garante que a fonte Material Icons seja
-  # incluída com sua aplicação, para que você possa usar os ícones na
-  # classe Material Icons.
-  uses-material-design: true
-
-  # Para adicionar assets à sua aplicação, adicione uma seção de assets, assim:
-  assets:
-    # Pasta de configuração e arquivos JSON
-    - assets/tenants/konekto_app_default/
-    - assets/tenants/konekto_app_default/room_service.json
-    - assets/tenants/konekto_app_default/restaurants_data.json
-    - assets/tenants/konekto_app_default/spa.json
-
-    # Imagens de logos
-    - assets/tenants/konekto_app_default/logos/
+flutter: # Esta linha alinhada à esquerda
+  uses-material-design: true # Esta linha indentada com dois espaços
+  
+  assets: # Esta linha indentada com dois espaços
+    - assets/images/konekto_logo.png # Logo Konekto (fixa, fora das pastas de tenant)
+    - assets/images/placeholder.png  # Imagens de fallback genéricas
     
-    # Imagens de banners
-    - assets/tenants/konekto_app_default/images/banners/
+    # Inclusão genérica da pasta raiz de tenants (para pegar JSONs na raiz de cada tenant, por exemplo)
+    - assets/tenants/ # Esta linha indentada com quatro espaços
     
-    # Imagens do cardápio e subpastas
-    - assets/tenants/konekto_app_default/images/cardapio/
-    - assets/tenants/konekto_app_default/images/cardapio/room_services/
+    # INCLUSÃO EXPLÍCITA DE CADA PASTA DE TENANT (RECOMENDADO PARA ROBUSTEZ)
+    # Isso garante que TODO o conteúdo de cada pasta de tenant seja incluído.
+    # Esta é a parte que você provavelmente sentiu falta.
+    - assets/tenants/konekto_app/ # Inclui tudo dentro de konekto_app/
+    - assets/tenants/beach_park/  # Inclui tudo dentro de beach_park/
+    - assets/tenants/copacabana_palace/ # Inclui tudo dentro de copacabana_palace/
+
+    # Além disso, para maior clareza e como uma camada extra de segurança, 
+    # listamos as subpastas de imagens mais comuns DENTRO DE CADA TENANT.
+    # Embora as linhas acima teoricamente já incluam isso, ser explícito pode evitar problemas.
+    # Mantenha a indentação de 4 espaços.
+
+    # Para konekto_app:
+    - assets/tenants/konekto_app/images/
+    - assets/tenants/konekto_app/images/banners/
+    - assets/tenants/konekto_app/images/cardapio/
+    - assets/tenants/konekto_app/images/cardapio/room_services/
+    - assets/tenants/konekto_app/images/restaurantes/
+    - assets/tenants/konekto_app/images/spa/
+    - assets/tenants/konekto_app/images/eventos/
+    - assets/tenants/konekto_app/images/mapa/
+    - assets/tenants/konekto_app/images/passeios/
+    - assets/tenants/konekto_app/images/logos/ 
     
-    # Outras pastas de imagem
-    - assets/tenants/konekto_app_default/images/restaurantes/
-    - assets/tenants/konekto_app_default/images/spa/
-
-  # Um asset de imagem pode se referir a uma ou mais "variantes" específicas de resolução, veja
-  # https://flutter.dev/to/resolution-aware-images
-
-  # Para detalhes sobre como adicionar assets de dependências de pacotes, veja
-  # https://flutter.dev/to/asset-from-package
-
-  # Para adicionar fontes personalizadas à sua aplicação, adicione uma seção de fontes aqui,
-  # nesta seção "flutter". Cada entrada nesta lista deve ter uma
-  # chave "family" com o nome da família da fonte, e uma chave "fonts" com uma
-  # lista fornecendo o asset e outros descritores para a fonte. Por
-  # exemplo:
-  # fonts:
-  #   - family: Schyler
-  #     fonts:
-  #       - asset: fonts/Schyler-Regular.ttf
-  #       - asset: fonts/Schyler-Italic.ttf
-  #         style: italic
-  #   - family: Trajan Pro
-  #     fonts:
-  #       - asset: fonts/TrajanPro.ttf
-  #       - asset: fonts/TrajanPro_Bold.ttf
-  #         weight: 700
-  #
-  # Para detalhes sobre fontes de dependências de pacotes,
-  # veja https://flutter.dev/to/font-from-package
+    # Para beach_park:
+    - assets/tenants/beach_park/images/
+    - assets/tenants/beach_park/images/banners/
+    - assets/tenants/beach_park/images/cardapio/
+    - assets/tenants/beach_park/images/cardapio/room_services/
+    - assets/tenants/beach_park/images/restaurantes/
+    - assets/tenants/beach_park/images/spa/
+    - assets/tenants/beach_park/images/eventos/
+    - assets/tenants/beach_park/images/mapa/
+    - assets/tenants/beach_park/images/passeios/
+    - assets/tenants/beach_park/images/logos/ 
+    
+    # Para copacabana_palace:
+    - assets/tenants/copacabana_palace/images/
+    - assets/tenants/copacabana_palace/images/banners/
+    - assets/tenants/copacabana_palace/images/cardapio/
+    - assets/tenants/copacabana_palace/images/cardapio/room_services/
+    - assets/tenants/copacabana_palace/images/restaurantes/
+    - assets/tenants/copacabana_palace/images/spa/
+    - assets/tenants/copacabana_palace/images/eventos/
+    - assets/tenants/copacabana_palace/images/mapa/
+    - assets/tenants/copacabana_palace/images/passeios/
+    - assets/tenants/copacabana_palace/images/logos/ 
+    
+    # Se você adicionar mais tenants no futuro, lembre-se de adicionar suas pastas raiz e de imagens aqui!

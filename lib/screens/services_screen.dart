@@ -1,287 +1,152 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
-import 'dart:convert';
-import '../utils/app_theme_data.dart';
-import '../widgets/custom_header.dart';
-import '../widgets/image_banner.dart';
-import 'spa_screen.dart';
-import 'restaurants_screen.dart';
-import 'room_service_screen.dart';
+// lib/screens/services_screen.dart
 
-class ServicesScreen extends StatefulWidget {
+import 'package:flutter/material.dart';
+import '../utils/app_theme_data.dart';
+import '../widgets/service_grid_item.dart';
+import 'spa_screen.dart';
+import 'room_service_screen.dart';
+import 'restaurants_screen.dart';
+import 'events_screen.dart';
+import 'tours_screen.dart';
+import 'map_screen.dart'; // NOVO: Importa a tela de mapa
+import '../widgets/image_banner.dart';
+
+class ServicesScreen extends StatelessWidget {
   final Map<String, dynamic> tenantConfig;
   final AppThemeData appColors;
-  final List<Map<String, dynamic>> roomServiceMenu;
+  final String bannerTitle;
+  final String bannerImagePath;
 
   const ServicesScreen({
     super.key,
     required this.tenantConfig,
     required this.appColors,
-    required this.roomServiceMenu,
+    required this.bannerTitle,
+    required this.bannerImagePath,
   });
 
-  @override
-  State<ServicesScreen> createState() => _ServicesScreenState();
-}
+  void _handleServiceTap(BuildContext context, String action) {
+    final List<dynamic> services = tenantConfig['servicesList'] ?? [];
+    final service = services.firstWhere((s) => s['action'] == action, orElse: () => null);
 
-class _ServicesScreenState extends State<ServicesScreen> {
-  bool _isPrecaching = false;
+    if (service == null) return;
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _precacheAllImagesFromJsons();
-  }
+    if (action == 'spa') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SpaScreen(
+            tenantConfig: tenantConfig,
+            appColors: appColors,
+          ),
+        ),
+      );
+    } else if (action == 'room_service') {
+      final Map<String, dynamic> roomServiceConfig = tenantConfig['roomServiceConfig'] ?? {};
 
-  // ignore: use_build_context_synchronously
-  Future<void> _precacheAllImagesFromJsons() async {
-    if (_isPrecaching) return;
-    _isPrecaching = true;
-
-    final List<String> allImagePaths = [
-      widget.tenantConfig['bannerImages']['servicesBanner'],
-    ];
-
-    try {
-      final spaPaths = await _getImagePathsFromSpaJson();
-      final restaurantPaths = await _getImagePathsFromRestaurantsJson();
-      allImagePaths.addAll(spaPaths);
-      allImagePaths.addAll(restaurantPaths);
-    } catch (e) {
-      // ignore: avoid_print
-      print("Erro ao coletar caminhos de imagens para pré-carregamento: $e");
-    }
-
-    if (mounted) {
-      for (var path in allImagePaths) {
-        if (path.isNotEmpty) {
-          precacheImage(AssetImage(path), context);
+      final List<dynamic> menuList = roomServiceConfig['menu'] ?? [];
+      final List<Map<String, dynamic>> roomServiceMenu = menuList.map<Map<String, dynamic>>((item) {
+        if (item is Map<String, dynamic>) {
+          return item;
+        } else {
+          return {};
         }
-      }
-      // ignore: avoid_print
-      print('Imagens pré-carregadas para a ServicesScreen com sucesso.');
-    }
-    _isPrecaching = false;
-  }
+      }).toList();
 
-  // CORRIGIDO: Esta função agora espera que o spa.json seja uma lista diretamente
-  Future<List<String>> _getImagePathsFromSpaJson() async {
-    try {
-      final String response = await rootBundle.loadString(
-          widget.tenantConfig['spaJsonPath'] ??
-              'assets/tenants/konekto_app_default/spa.json');
-      final List<dynamic> data = json.decode(response); // Decodifica como uma Lista
-      List<String> paths = [];
-      for (var item in data) { // Itera diretamente sobre a lista
-        if (item is Map<String, dynamic> && item.containsKey('imagePath')) {
-          paths.add(item['imagePath']);
-        }
-      }
-      return paths;
-    } catch (e) {
-      // ignore: avoid_print
-      print("Erro ao carregar imagens do SPA: $e");
-      return [];
-    }
-  }
-
-  Future<List<String>> _getImagePathsFromRestaurantsJson() async {
-    try {
-      final String response = await rootBundle.loadString(
-          widget.tenantConfig['restaurantsJsonPath'] ??
-              'assets/tenants/konekto_app_default/restaurants_data.json');
-      final Map<String, dynamic> data = json.decode(response);
-      List<String> paths = [];
-      for (var restaurant in data['restaurants']) {
-        paths.add(restaurant['imagePath']);
-        for (var section in restaurant['menu']) {
-          for (var item in section['items']) {
-            if (item.containsKey('imagePath')) {
-              paths.add(item['imagePath']);
-            }
-          }
-        }
-      }
-      return paths;
-    } catch (e) {
-      // ignore: avoid_print
-      print("Erro ao carregar imagens de Restaurantes: $e");
-      return [];
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => RoomServiceScreen(
+            serviceTitle: service['title'] ?? 'Room Service',
+            serviceDescription: roomServiceConfig['description'] ?? '',
+            serviceImagePath: roomServiceConfig['bannerPath'] ?? '',
+            menu: roomServiceMenu,
+            appColors: appColors,
+          ),
+        ),
+      );
+    } else if (action == 'restaurants') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => RestaurantsScreen(
+            tenantConfig: tenantConfig,
+            appColors: appColors,
+          ),
+        ),
+      );
+    } else if (action == 'events') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => EventsScreen(
+            tenantConfig: tenantConfig,
+            appColors: appColors,
+          ),
+        ),
+      );
+    } else if (action == 'tours') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ToursScreen(
+            tenantConfig: tenantConfig,
+            appColors: appColors,
+          ),
+        ),
+      );
+    } else if (action == 'map') { // NOVO: Adiciona a navegação para a tela de mapa
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => MapScreen(
+            tenantConfig: tenantConfig,
+            appColors: appColors,
+          ),
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: widget.appColors.background,
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            CustomHeader(
-              title: 'Serviços',
-              leading: IconButton(
-                icon: Icon(Icons.close, color: widget.appColors.primaryText),
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-              ),
-              trailing: const SizedBox.shrink(),
-              appColors: widget.appColors,
-            ),
-            ImageBanner(
-              imagePath: widget.tenantConfig['bannerImages']['servicesBanner'],
-              height: 250,
-              appColors: widget.appColors,
-            ),
-            _buildServiceList(context),
-          ],
-        ),
-      ),
-    );
-  }
+    final List<dynamic> services = tenantConfig['servicesList'] ?? [];
 
-  Widget _buildServiceList(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+    return SingleChildScrollView(
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Botão Room Service com navegação
-          _buildServiceItem(
-            context,
-            'Room Service',
-            'Serviço de quarto',
-            Icons.room_service,
-            onTap: () {
-              if (widget.roomServiceMenu.isNotEmpty) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => RoomServiceScreen(
-                      serviceTitle: 'Room Service',
-                      serviceDescription: widget.tenantConfig['roomServiceConfig']['description'],
-                      serviceImagePath: widget.tenantConfig['roomServiceConfig']['bannerPath'],
-                      menu: widget.roomServiceMenu,
-                      appColors: widget.appColors,
-                    ),
-                  ),
+          ImageBanner(
+            imagePath: bannerImagePath,
+            height: 250,
+            gradientText: bannerTitle,
+            appColors: appColors,
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 16.0,
+                mainAxisSpacing: 16.0,
+                childAspectRatio: 1.0,
+              ),
+              itemCount: services.length,
+              itemBuilder: (context, index) {
+                final service = services[index];
+                final imagePath = service['bannerPath'] ?? '';
+                return ServiceGridItem(
+                  title: service['title'],
+                  imagePath: imagePath,
+                  onTap: () => _handleServiceTap(context, service['action']),
+                  appColors: appColors,
                 );
-              }
-            },
+              },
+            ),
           ),
-          _buildServiceItem(
-            context,
-            'SPA',
-            'Relaxe e rejuvenesça',
-            Icons.spa,
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => SpaScreen(
-                    tenantConfig: widget.tenantConfig,
-                    appColors: widget.appColors,
-                  ),
-                ),
-              );
-            },
-          ),
-          _buildServiceItem(
-            context,
-            'Restaurantes',
-            'Opções de refeições',
-            Icons.restaurant,
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => RestaurantsScreen(
-                    tenantConfig: widget.tenantConfig,
-                    appColors: widget.appColors,
-                    roomServiceMenu: widget.roomServiceMenu,
-                  ),
-                ),
-              );
-            },
-          ),
-          _buildServiceItem(
-            context,
-            'Eventos',
-            'Eventos especiais',
-            Icons.event,
-          ),
-          _buildServiceItem(
-            context,
-            'Passeios',
-            'Explore a área',
-            Icons.directions_walk,
-          ),
-          _buildServiceItem(
-            context,
-            'Mapa do Hotel',
-            'Mapa do Hotel',
-            Icons.map,
-          ),
-          const SizedBox(height: 24),
         ],
-      ),
-    );
-  }
-
-  Widget _buildServiceItem(BuildContext context, String title, String subtitle,
-      IconData icon, {VoidCallback? onTap}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: widget.appColors.background,
-            borderRadius: BorderRadius.circular(8),
-            boxShadow: [
-              BoxShadow(
-                color: widget.appColors.shadowColor,
-                spreadRadius: 1,
-                blurRadius: 5,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: widget.appColors.borderColor,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, color: widget.appColors.primaryText),
-              ),
-              const SizedBox(width: 16),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: widget.appColors.primaryText,
-                          fontWeight: FontWeight.w500,
-                        ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: widget.appColors.secondaryText,
-                        ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

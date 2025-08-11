@@ -1,4 +1,7 @@
+// lib/screens/product_detail_screen.dart
+
 import 'package:flutter/material.dart';
+import 'package:dotted_border/dotted_border.dart';
 import '../utils/app_theme_data.dart';
 import '../widgets/custom_dialog.dart';
 
@@ -18,6 +21,19 @@ class ProductDetailScreen extends StatefulWidget {
 
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
   int _quantity = 1;
+  late final TextEditingController _customizationController;
+
+  @override
+  void initState() {
+    super.initState();
+    _customizationController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _customizationController.dispose();
+    super.dispose();
+  }
 
   void _incrementQuantity() {
     setState(() {
@@ -39,7 +55,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     final String title = widget.product['name'] ?? 'Item sem nome';
     final String description = widget.product['description'] ?? 'Descrição não disponível';
     final double price = widget.product['price']?.toDouble() ?? 0.0;
-    final double totalPrice = price * _quantity; // Cálculo do preço total
+    final double totalPrice = price * _quantity;
 
     return Scaffold(
       backgroundColor: widget.appColors.background,
@@ -74,7 +90,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   top: 40,
                   left: 16,
                   child: IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.white, size: 30),
+                    // Usa a cor buttonText, que agora é branca
+                    icon: Icon(Icons.arrow_back, color: widget.appColors.buttonText, size: 30),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ),
@@ -107,21 +124,55 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         ),
                   ),
                   const SizedBox(height: 24),
+                  Text(
+                    'Observações do pedido:',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          color: widget.appColors.primaryText,
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  DottedBorder(
+                    color: widget.appColors.secondaryText,
+                    strokeWidth: 1,
+                    dashPattern: const [4, 4],
+                    borderType: BorderType.RRect,
+                    radius: const Radius.circular(8),
+                    child: TextField(
+                      controller: _customizationController,
+                      keyboardType: TextInputType.multiline,
+                      maxLines: 4,
+                      style: TextStyle(color: widget.appColors.primaryText),
+                      decoration: InputDecoration(
+                        hintText: 'Ex: Sem cebola, com mais molho, etc.',
+                        hintStyle: TextStyle(color: widget.appColors.secondaryText),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.all(12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _buildQuantitySelector(),
-                      _buildAddToCartButton(context, totalPrice),
+                      SizedBox(
+                        width: 170,
+                        height: 50,
+                        child: _buildQuantitySelector(),
+                      ),
+                      SizedBox(
+                        width: 170,
+                        height: 50,
+                        child: _buildAddToCartButton(context, totalPrice),
+                      ),
                     ],
                   ),
-                  // O espaçamento foi aumentado para 24
                   const SizedBox(height: 24),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       Text(
                         'Total: R\$ ${totalPrice.toStringAsFixed(2)}',
-                        // O tamanho da fonte foi ajustado para um valor fixo um pouco menor
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                               fontSize: 18,
                               color: widget.appColors.primary,
@@ -141,7 +192,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   Widget _buildQuantitySelector() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: widget.appColors.accent,
         borderRadius: BorderRadius.circular(20),
@@ -149,31 +200,27 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          SizedBox(
-            width: 32,
-            child: IconButton(
-              icon: Icon(Icons.keyboard_arrow_down, color: widget.appColors.buttonText),
-              onPressed: _decrementQuantity,
-              padding: EdgeInsets.zero,
-            ),
+          IconButton(
+            icon: Icon(Icons.keyboard_arrow_down, color: widget.appColors.buttonText),
+            onPressed: _decrementQuantity,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8.0),
             child: Text(
               _quantity.toString(),
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: widget.appColors.buttonText,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: widget.appColors.buttonText, // Usa a cor do tema
                     fontWeight: FontWeight.bold,
                   ),
             ),
           ),
-          SizedBox(
-            width: 32,
-            child: IconButton(
-              icon: Icon(Icons.keyboard_arrow_up, color: widget.appColors.buttonText),
-              onPressed: _incrementQuantity,
-              padding: EdgeInsets.zero,
-            ),
+          IconButton(
+            icon: Icon(Icons.keyboard_arrow_up, color: widget.appColors.buttonText),
+            onPressed: _incrementQuantity,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
           ),
         ],
       ),
@@ -181,12 +228,22 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Widget _buildAddToCartButton(BuildContext context, double totalPrice) {
+    String customizationText = _customizationController.text;
+
+    final String deliveryEstimate = 'A entrega está estimada para 30-45 minutos.';
+
+    String dialogMessage = '$_quantity x "${widget.product['name']}" (R\$ ${totalPrice.toStringAsFixed(2)}) será adicionado ao seu carrinho.';
+    if (customizationText.isNotEmpty) {
+      dialogMessage += '\n\nObservações:\n$customizationText';
+    }
+    dialogMessage += '\n\n$deliveryEstimate';
+
     return ElevatedButton.icon(
       onPressed: () {
         showCustomDialog(
           context: context,
           title: 'Pedido para Quarto Confirmado!',
-          message: '$_quantity x "${widget.product['name']}" (R\$ ${totalPrice.toStringAsFixed(2)}) será adicionado ao seu carrinho',
+          message: dialogMessage,
           appColors: widget.appColors,
           okButtonText: 'Confirmar Pedido',
           onOkPressed: () {
@@ -200,13 +257,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        padding: EdgeInsets.zero,
       ),
       icon: Icon(Icons.shopping_cart, color: widget.appColors.buttonText),
       label: Text(
         'Adicionar',
         style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: widget.appColors.buttonText,
+              color: widget.appColors.buttonText, // Usa a cor do tema
               fontWeight: FontWeight.bold,
             ),
       ),

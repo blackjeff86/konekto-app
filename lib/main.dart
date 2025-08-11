@@ -1,59 +1,15 @@
+// lib/main.dart
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
-import 'dart:convert';
-import 'package:intl/date_symbol_data_local.dart';
+// Para rootBundle
+import 'package:intl/date_symbol_data_local.dart'; 
 
-// Importe suas telas
-import 'package:konekto_app/screens/home_screen.dart';
-// Importe a classe que criamos para gerenciar as cores
-import 'package:konekto_app/utils/app_theme_data.dart';
+import 'utils/app_theme_data.dart'; // Certifique-se de que esta linha está correta
+import 'screens/check_in_status_screen.dart'; 
 
-// Variáveis globais para armazenar os dados carregados
-late Map<String, dynamic> tenantConfig;
-late AppThemeData appColors;
-
-Future<void> main() async {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('pt_BR', null);
-
-  // Carrega o arquivo de configuração do inquilino (hotel_default.json)
-  try {
-    final String response = await rootBundle.loadString('assets/tenants/konekto_app_default/hotel_default.json');
-    tenantConfig = json.decode(response);
-
-    // Constrói a paleta de cores a partir da seção 'colors' do JSON
-    // Certifique-se de que seu hotel_default.json tenha uma chave 'colors'
-    final Map<String, dynamic> colorsData = tenantConfig['colors'];
-    appColors = AppThemeData.fromJson(colorsData);
-  } catch (e) {
-    print('ERRO ao carregar ou decodificar a configuração do tenant: $e');
-    // Em caso de erro, usa a configuração e as cores padrão (fallback)
-    tenantConfig = {
-      'name': 'Konekto App - Erro',
-      'logoPath': 'assets/logos/default_logo.png',
-      'bannerImages': {
-        'homeBanner': 'assets/images/default_banner.png',
-        'servicesBanner': 'assets/images/default_banner.png',
-      },
-      // Cores padrão em caso de falha ao carregar o JSON
-      'colors': {
-        "primary": "0xFF0F172A",
-        "accent": "0xFF1E293B",
-        "primaryText": "0xFF111416",
-        "secondaryText": "0xFF637287",
-        "background": "0xFFF8FAFC",
-        "borderColor": "0xFFE5E8EA",
-        "success": "0xFF10B981",
-        "warning": "0xFFF59E0B",
-        "error": "0xFFEF4444",
-        "shadowColor": "0x1A000000" // Cor da sombra com 10% de opacidade (0x1A é 10% de 0xFF)
-      }
-    };
-    // Inicializa appColors com os valores de fallback
-    appColors = AppThemeData.fromJson(tenantConfig['colors']);
-  }
-
-  // Executa o aplicativo após o carregamento das configurações
+  
   runApp(const MyApp());
 }
 
@@ -62,28 +18,52 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Definimos algumas cores básicas aqui para que a tela inicial tenha um tema
+    // antes mesmo do tenantConfig ser carregado.
+    // ESTA INICIALIZAÇÃO AGORA CORRESPONDE EXATAMENTE À SUA CLASSE APPTHEMEDATA
+    final AppThemeData defaultAppColors = AppThemeData(
+      primary: const Color(0xFF0F172A), // Azul escuro da Konekto (cor do fundo da tela de check-in)
+      onPrimary: Colors.white,           // Texto/ícones sobre a cor primary (azul escuro)
+      accent: const Color(0xFF3B82F6),   // Um azul mais vibrante para destaque (campo de texto)
+      primaryText: Colors.white,         // Texto principal branco
+      secondaryText: Colors.grey[400]!,  // Texto secundário cinza claro
+      background: Colors.grey[50]!,      // Cor de fundo geral do app (quando o tenantConfig for carregado)
+      cardBackground: Colors.white,      // Fundo de cards branco
+      buttonBackground: const Color(0xFF3B82F6), // Exemplo de cor para botões
+      borderColor: Colors.grey[700]!,     // Cor de borda para inputs, etc.
+      success: Colors.green,             // Cor para mensagens de sucesso
+      warning: Colors.orange,            // Cor para mensagens de alerta/aguardando
+      error: Colors.red,                 // Cor para mensagens de erro
+      onError: Colors.white,             // Texto/ícones sobre a cor de erro
+      shadowColor: Colors.black.withOpacity(0.2), // Sombra padrão
+      buttonText: Colors.white,          // Texto em botões
+      splashScreenIconPath: 'assets/images/icons/default_icon.png', // Caminho padrão para ícone da splash (você pode ajustar)
+    );
+
     return MaterialApp(
-      title: tenantConfig['name'] ?? 'Konekto App',
       debugShowCheckedModeBanner: false,
+      title: 'Konekto App', 
       theme: ThemeData(
-        scaffoldBackgroundColor: appColors.background,
-        colorScheme: ColorScheme.fromSwatch(
-          primarySwatch: Colors.blue, // Necessário para a construtora
-          backgroundColor: appColors.background,
-        ).copyWith(
-          primary: appColors.primary,
-          secondary: appColors.accent,
-          surface: appColors.background,
-          onPrimary: appColors.primaryText,
-          onSecondary: appColors.secondaryText,
+        primaryColor: defaultAppColors.primary,
+        scaffoldBackgroundColor: defaultAppColors.background, 
+        // Definir um TextTheme básico para a tela inicial
+        textTheme: TextTheme(
+          headlineMedium: TextStyle(color: defaultAppColors.primaryText),
+          titleLarge: TextStyle(color: defaultAppColors.primaryText),
+          titleMedium: TextStyle(color: defaultAppColors.primaryText),
+          bodyLarge: TextStyle(color: defaultAppColors.primaryText),
+          bodyMedium: TextStyle(color: defaultAppColors.primaryText),
         ),
-        textTheme: const TextTheme(
-          // Estilos de texto padrão aqui, se necessário
-        ),
+        // Embora 'extensions' seja bom para temas mais complexos,
+        // para sua AppThemeData, você pode acessá-lo diretamente
+        // como `widget.appColors.primary` ou via `Theme.of(context).primaryColor`
+        // se você mapear as cores para as propriedades padrão do ThemeData.
+        // No entanto, para usar todas as suas cores personalizadas facilmente,
+        // passá-las diretamente para os widgets é o ideal.
       ),
-      home: HomeScreen(
-        tenantConfig: tenantConfig,
-        appColors: appColors,
+      home: CheckInStatusScreen(
+        tenantConfig: const {}, 
+        appColors: defaultAppColors,
       ),
     );
   }

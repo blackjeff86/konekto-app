@@ -123,9 +123,8 @@ class _SpaScreenState extends State<SpaScreen> {
               serviceDescription: service['description'],
               imagePath: service['imagePath'],
               appColors: widget.appColors,
-              // CORRIGIDO: Passa os novos parâmetros para a ScheduleScreen
               tenantConfig: widget.tenantConfig,
-              roomServiceMenu: [], // Passamos uma lista vazia, pois não é um restaurante.
+              roomServiceMenu: [], 
             ),
           ),
         );
@@ -134,7 +133,7 @@ class _SpaScreenState extends State<SpaScreen> {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: widget.appColors.background,
+          color: widget.appColors.cardBackground, // CORRIGIDO: Usa cardBackground
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
@@ -181,7 +180,7 @@ class _SpaScreenState extends State<SpaScreen> {
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: Image.asset(
-                service['imagePath'],
+                service['imagePath'] ?? 'assets/images/placeholder.png', // Adicionado placeholder
                 width: 130,
                 height: 112,
                 fit: BoxFit.cover,

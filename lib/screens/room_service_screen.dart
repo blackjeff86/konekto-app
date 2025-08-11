@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../utils/app_theme_data.dart';
 import '../widgets/custom_header.dart';
 import '../widgets/image_banner.dart';
-import 'product_detail_screen.dart';
+import 'product_detail_screen.dart'; // A linha de import correta
 
 class RoomServiceScreen extends StatelessWidget {
   final String serviceTitle;
